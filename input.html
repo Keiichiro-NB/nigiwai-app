@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>現地評価入力 | Nigiwai App</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="input.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <!-- ヘッダー -->
+    <header class="input-header">
+        <a href="index.html" class="back-link"><i data-lucide="chevron-left"></i> ダッシュボード</a>
+        <div class="input-title">
+            <i data-lucide="edit-3" style="color: #3b82f6;"></i>
+            現地評価入力
+        </div>
+        <!-- バツボタンでzone.htmlに戻る -->
+        <a href="zone.html" class="close-btn"><i data-lucide="x"></i></a>
+    </header>
+
+    <!-- 調査コンテキスト設定 (アコーディオン) -->
+    <details class="context-accordion" open>
+        <summary><i data-lucide="map-pin"></i> 調査コンテキスト設定</summary>
+        <div class="context-form">
+            <div class="context-group">
+                <label>日付</label>
+                <input type="date" id="eval-date" class="context-input" onclick="this.showPicker && this.showPicker()">
+            </div>
+            <div class="context-group">
+                <label>時間</label>
+                <select id="eval-time" class="context-input">
+                    <option value="">選択してください</option>
+                </select>
+            </div>
+            <div class="context-group full-width">
+                <label>場所</label>
+                <select id="eval-location" class="context-input" onchange="updateZoneOptions()">
+                    <option value="">選択してください</option>
+                    <!-- JSで動的に追加されます -->
+                </select>
+            </div>
+            <div class="context-group full-width">
+                <label>セクション・ゾーン</label>
+                <select id="eval-zone" class="context-input" disabled>
+                    <option value="">場所を選択してください</option>
+                </select>
+            </div>
+        </div>
+    </details>
+
+    <!-- タブナビゲーション -->
+    <div class="tabs-nav">
+        <button class="tab-btn active" onclick="switchTab('cause')">原因指標 (10項目)</button>
+        <button class="tab-btn" onclick="switchTab('result')">結果指標 (10項目)</button>
+    </div>
+
+    <!-- 原因指標タブ (空間・設備) -->
+    <div id="tab-cause" class="tab-content active">
+        <p style="color: #94a3b8; font-size: 14px; margin-bottom: 24px; line-height: 1.5;">
+            空間や設備の状況（賑わいの原因）を直感的に評価してください。<br>
+            <span style="font-size: 12px;">※1が悪い/少ない、5が良い/多い</span>
+        </p>
+        
+        <!-- JavaScriptでカードを生成するコンテナ -->
+        <div id="cause-list"></div>
+    </div>
+
+    <!-- 結果指標タブ (人の行動) -->
+    <div id="tab-result" class="tab-content">
+        <p style="color: #94a3b8; font-size: 14px; margin-bottom: 24px; line-height: 1.5;">
+            人々の行動や反応（賑わいの結果）を直感的に評価してください。<br>
+            <span style="font-size: 12px;">※1が悪い/少ない、5が良い/多い</span>
+        </p>
+        
+        <!-- JavaScriptでカードを生成するコンテナ -->
+        <div id="result-list"></div>
+    </div>
+
+    <!-- 全体コメントセクション -->
+    <div class="general-comment-section">
+        <h3><i data-lucide="message-square" style="color: #8b5cf6;"></i> 全体的な所感・気づき</h3>
+        <textarea id="general-comment" class="comment-input" rows="4" placeholder="（任意）特筆すべき人の行動、設備の問題点、あるいは全体の雰囲気について気づいたことを自由に記述してください。"></textarea>
+    </div>
+
+    <!-- 送信ボタン (画面下部固定) -->
+    <div class="submit-area">
+        <button class="btn-draft" onclick="saveDraft()">
+            <i data-lucide="save"></i> 一時保存
+        </button>
+        <button class="btn-submit" onclick="submitEvaluation()">
+            <i data-lucide="send"></i> 評価を送信する
+        </button>
+    </div>
+
+    <!-- トースト通知 -->
+    <div id="toast" class="toast-mobile"><i data-lucide="check"></i> 保存しました</div>
+
+    <script>
+        // タブ切り替えロジック
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.currentTarget.classList.add('active');
+            document.getElementById('tab-' + tabId).classList.add('active');
+            
+            // タブを切り替えたら一番上までスクロール
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // 評価ボタン（1〜5）の選択処理
+        function selectRating(groupName, value, btnElement) {
+            // 同じ指標グループのボタンから selected クラスを外す
+            const container = btnElement.parentElement;
+            container.querySelectorAll('.rating-btn').forEach(btn => btn.classList.remove('selected'));
+            
+            // クリックしたボタンに selected クラスを付与（CSSで色がつく）
+            btnElement.classList.add('selected');
+        }
+
+        // 送信処理（実際のDB/LocalStorageへ登録）
+        function submitEvaluation() {
+            const btn = document.querySelector('.btn-submit');
+            
+            // ドラフトデータを読み込んでsys_evaluationsに登録
+            const savedData = localStorage.getItem('nigiwai_draft');
+            if (savedData) {
+                try {
+                    const draftData = JSON.parse(savedData);
+                    const evalData = {
+                        id: 'eval_' + Date.now(),
+                        timestamp: new Date().toISOString(),
+                        placeId: draftData.location || '',
+                        zoneId: draftData.zone || '',
+                        source: 'Human',
+                        ratings: draftData.ratings || {},
+                        comment: draftData.generalComment || ''
+                    };
+                    
+                    let evaluations = [];
+                    const storedEvals = localStorage.getItem('sys_evaluations');
+                    if (storedEvals) {
+                        evaluations = JSON.parse(storedEvals);
+                    }
+                    evaluations.push(evalData);
+                    localStorage.setItem('sys_evaluations', JSON.stringify(evaluations));
+                    
+                    // 送信完了後にドラフトを消去
+                    localStorage.removeItem('nigiwai_draft');
+                } catch(e) {
+                    console.error("Failed to save evaluation to DB", e);
+                }
+            }
+            
+            // ボタンを完了状態に変化させる
+            btn.innerHTML = '<i data-lucide="check-circle"></i> 送信完了！';
+            btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+            btn.style.boxShadow = '0 8px 20px rgba(16, 185, 129, 0.4)';
+            
+            lucide.createIcons();
+            
+            // 1.5秒後に index.html へ遷移
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 1500);
+        }
+
+        // KNF 原因指標 (10項目)
+        const causeIndicators = [
+            "歩きやすさ・動線の広さ",
+            "座る場所・滞留スペースの多さ",
+            "清潔感・美観の良さ",
+            "音環境（BGMや騒音の適切さ）",
+            "照明・明るさの適切さ",
+            "視線の抜け・開放感",
+            "緑・自然の豊かさ",
+            "日当たり・風通しの良さ",
+            "飲食やコンテンツの魅力",
+            "安全性・安心感"
+        ];
+
+        // KNF 結果指標 (10項目)
+        const resultIndicators = [
+            "全体の活気・盛り上がり",
+            "居心地の良さ・リラックス感",
+            "来訪者の多様性（年齢層など）",
+            "回遊・散策の活発さ",
+            "滞留の長さ（長居しているか）",
+            "会話の多さ・交流",
+            "笑顔・ポジティブな表情",
+            "写真撮影などの能動的行動",
+            "子供の遊び・走り回り",
+            "イベントや音楽への参加度"
+        ];
+
+        // HTML生成関数 (カードの繰り返し記述を避けるため)
+        function renderCards(containerId, indicators, prefix) {
+            const container = document.getElementById(containerId);
+            let html = '';
+            
+            indicators.forEach((ind, index) => {
+                const groupId = `${prefix}-${index}`;
+                html += `
+                    <div class="indicator-card">
+                        <div class="indicator-header">
+                            <span class="indicator-name">${index + 1}. ${ind}</span>
+                        </div>
+                        <div class="rating-scale">
+                            <div class="rating-btn" data-val="1" onclick="selectRating('${groupId}', 1, this)">1</div>
+                            <div class="rating-btn" data-val="2" onclick="selectRating('${groupId}', 2, this)">2</div>
+                            <div class="rating-btn" data-val="3" onclick="selectRating('${groupId}', 3, this)">3</div>
+                            <div class="rating-btn" data-val="4" onclick="selectRating('${groupId}', 4, this)">4</div>
+                            <div class="rating-btn" data-val="5" onclick="selectRating('${groupId}', 5, this)">5</div>
+                        </div>
+                        <div class="rating-labels">
+                            <span>低 / 少</span>
+                            <span>高 / 多</span>
+                        </div>
+                        <div class="image-upload-area" style="margin-bottom: 12px;">
+                            <label for="${groupId}-image" class="image-upload-label" style="display: flex; align-items: center; gap: 6px; color: #3b82f6; font-size: 13px; cursor: pointer; padding: 8px 0; width: fit-content;">
+                                <i data-lucide="camera" style="width: 16px; height: 16px;"></i> 画像を添付する
+                            </label>
+                            <input type="file" id="${groupId}-image" accept="image/*" style="display: none;" onchange="handleImageUpload(this, '${groupId}')">
+                            <div id="${groupId}-preview" class="image-preview" style="display: none; margin-top: 8px; border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
+                                <img src="" style="width: 100%; max-height: 200px; object-fit: cover; display: block;">
+                                <button onclick="removeImage('${groupId}')" style="width: 100%; padding: 8px; background: rgba(239, 68, 68, 0.15); color: #ef4444; border: none; cursor: pointer; font-size: 13px; font-weight: 500;">削除</button>
+                            </div>
+                        </div>
+                        <textarea id="${groupId}-comment" class="comment-input" rows="1" placeholder="（任意）特記事項..."></textarea>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // カードを生成
+        renderCards('cause-list', causeIndicators, 'cause');
+        renderCards('result-list', resultIndicators, 'result');
+        
+        // --- ここから追加：コンテキスト選択と一時保存のロジック ---
+
+        let nigiwaiPlaces = [];
+
+        // 対象地(Place)の読み込みとセレクトボックスの初期化
+        function initPlaces() {
+            const savedPlaces = localStorage.getItem('sys_places');
+            const locationSelect = document.getElementById('eval-location');
+            
+            if (savedPlaces) {
+                try {
+                    nigiwaiPlaces = JSON.parse(savedPlaces);
+                    locationSelect.innerHTML = '<option value="">選択してください</option>';
+                    nigiwaiPlaces.forEach(place => {
+                        const option = document.createElement('option');
+                        option.value = place.id;
+                        option.textContent = place.name;
+                        locationSelect.appendChild(option);
+                    });
+                } catch(e) {
+                    console.error("Failed to parse sys_places", e);
+                }
+            } else {
+                // 旧バージョンのデータがあるか確認
+                const oldName = localStorage.getItem('sys_place_name');
+                if (oldName) {
+                    locationSelect.innerHTML = `<option value="">選択してください</option><option value="mebks-toyosu">${oldName}</option>`;
+                }
+            }
+        }
+
+        // ゾーンの動的切り替え
+        function updateZoneOptions() {
+            const locationSelect = document.getElementById('eval-location');
+            const zoneSelect = document.getElementById('eval-zone');
+            const selectedLocation = locationSelect.value;
+            
+            zoneSelect.innerHTML = '<option value="">場所を選択してください</option>';
+            zoneSelect.disabled = true;
+            
+            if (!selectedLocation) return;
+
+            const place = nigiwaiPlaces.find(p => p.id === selectedLocation);
+            if (place && place.zones && place.zones.length > 0) {
+                zoneSelect.disabled = false;
+                zoneSelect.innerHTML = '<option value="">選択してください</option>';
+                place.zones.forEach(zone => {
+                    const option = document.createElement('option');
+                    option.value = zone.id;
+                    option.textContent = zone.name;
+                    zoneSelect.appendChild(option);
+                });
+            } else if (selectedLocation === 'mebks-toyosu') {
+                // レガシーフォールバック
+                zoneSelect.disabled = false;
+                zoneSelect.innerHTML = `
+                    <option value="">選択してください</option>
+                    <option value="zone-a">ゾーンA</option>
+                    <option value="zone-b">ゾーンB</option>
+                    <option value="zone-c">ゾーンC</option>
+                `;
+            }
+        }
+
+        // 一時保存 (LocalStorage)
+        async function saveDraft() {
+            const btn = document.querySelector('.btn-draft');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="loader"></i> 保存中...';
+            lucide.createIcons();
+            
+            const draftData = {
+                date: document.getElementById('eval-date').value,
+                time: document.getElementById('eval-time').value,
+                location: document.getElementById('eval-location').value,
+                zone: document.getElementById('eval-zone').value,
+                generalComment: document.getElementById('general-comment').value,
+                ratings: {},
+                comments: {},
+                images: {}
+            };
+
+            // 評価値とコメント、画像の収集
+            document.querySelectorAll('.indicator-card').forEach(card => {
+                const selectedBtn = card.querySelector('.rating-btn.selected');
+                const commentInput = card.querySelector('textarea.comment-input');
+                const commentId = commentInput.id;
+                const groupId = commentId.replace('-comment', '');
+
+                if (selectedBtn) {
+                    draftData.ratings[groupId] = selectedBtn.getAttribute('data-val');
+                }
+                if (commentInput.value) {
+                    draftData.comments[groupId] = commentInput.value;
+                }
+                
+                // 画像の収集
+                const previewDiv = document.getElementById(`${groupId}-preview`);
+                if (previewDiv && previewDiv.hasAttribute('data-image')) {
+                    draftData.images[groupId] = previewDiv.getAttribute('data-image');
+                }
+            });
+
+            try {
+                localStorage.setItem('nigiwai_draft', JSON.stringify(draftData));
+                showToast();
+            } catch (e) {
+                console.error(e);
+                alert('保存容量の上限に達しました。いくつかの画像を削除してください。');
+            }
+            
+            btn.innerHTML = originalHtml;
+        }
+
+        // 保存データの復元
+        function loadDraft() {
+            const savedData = localStorage.getItem('nigiwai_draft');
+            if (!savedData) return;
+
+            try {
+                const draftData = JSON.parse(savedData);
+
+                // コンテキストの復元
+                if (draftData.date) document.getElementById('eval-date').value = draftData.date;
+                if (draftData.time) document.getElementById('eval-time').value = draftData.time;
+                if (draftData.location) {
+                    document.getElementById('eval-location').value = draftData.location;
+                    updateZoneOptions(); // ゾーンの選択肢を生成
+                }
+                if (draftData.zone) document.getElementById('eval-zone').value = draftData.zone;
+                if (draftData.generalComment) document.getElementById('general-comment').value = draftData.generalComment;
+
+                // 評価値の復元
+                if (draftData.ratings) {
+                    Object.keys(draftData.ratings).forEach(groupId => {
+                        const val = draftData.ratings[groupId];
+                        const btn = document.querySelector(`.rating-btn[onclick*="'${groupId}', ${val}"]`);
+                        if (btn) btn.classList.add('selected');
+                    });
+                }
+
+                // コメントの復元
+                if (draftData.comments) {
+                    Object.keys(draftData.comments).forEach(groupId => {
+                        const textarea = document.getElementById(`${groupId}-comment`);
+                        if (textarea) textarea.value = draftData.comments[groupId];
+                    });
+                }
+
+                // 画像の復元
+                if (draftData.images) {
+                    Object.keys(draftData.images).forEach(groupId => {
+                        const base64Image = draftData.images[groupId];
+                        const previewDiv = document.getElementById(`${groupId}-preview`);
+                        if (previewDiv && base64Image) {
+                            const imgTag = previewDiv.querySelector('img');
+                            imgTag.src = base64Image;
+                            previewDiv.style.display = 'block';
+                            previewDiv.setAttribute('data-image', base64Image);
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error("Failed to load draft:", e);
+            }
+        }
+
+        // --- ここから追加：画像の処理と時間の生成 ---
+
+        // 時間の選択肢を生成 (30分刻み)
+        function generateTimeOptions() {
+            const timeSelect = document.getElementById('eval-time');
+            if(!timeSelect) return;
+            for (let h = 0; h < 24; h++) {
+                for (let m = 0; m < 60; m += 30) {
+                    const hh = h.toString().padStart(2, '0');
+                    const mm = m.toString().padStart(2, '0');
+                    const timeStr = `${hh}:${mm}`;
+                    const option = document.createElement('option');
+                    option.value = timeStr;
+                    option.textContent = timeStr;
+                    timeSelect.appendChild(option);
+                }
+            }
+        }
+        generateTimeOptions();
+
+        // 画像のリサイズ処理 (Canvasを使用)
+        function resizeImage(file, maxSize = 500) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        if (width > height) {
+                            if (width > maxSize) {
+                                height = Math.round((height *= maxSize / width));
+                                width = maxSize;
+                            }
+                        } else {
+                            if (height > maxSize) {
+                                width = Math.round((width *= maxSize / height));
+                                height = maxSize;
+                            }
+                        }
+                        
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        // JPEG形式で圧縮してBase64で返す (品質0.7)
+                        resolve(canvas.toDataURL('image/jpeg', 0.7));
+                    };
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // 画像選択時の処理
+        async function handleImageUpload(input, groupId) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            try {
+                const label = document.querySelector(`label[for="${groupId}-image"]`);
+                const originalHtml = label.innerHTML;
+                label.innerHTML = '<i data-lucide="loader"></i> 処理中...';
+                lucide.createIcons();
+
+                // リサイズしてBase64取得
+                const base64Image = await resizeImage(file);
+                
+                // プレビュー表示
+                const previewDiv = document.getElementById(`${groupId}-preview`);
+                const imgTag = previewDiv.querySelector('img');
+                imgTag.src = base64Image;
+                previewDiv.style.display = 'block';
+                
+                // 隠しデータとして保存用に属性に追加
+                previewDiv.setAttribute('data-image', base64Image);
+                
+                label.innerHTML = originalHtml;
+                // createIcons() doesn't touch already processed SVGs, so it's safe if originalHtml has them
+            } catch (err) {
+                console.error("Image resize failed", err);
+                alert("画像の処理に失敗しました。");
+            }
+        }
+
+        // 画像の削除
+        function removeImage(groupId) {
+            const input = document.getElementById(`${groupId}-image`);
+            const previewDiv = document.getElementById(`${groupId}-preview`);
+            
+            if(input) input.value = ''; // ファイル選択をリセット
+            if(previewDiv) {
+                previewDiv.style.display = 'none';
+                previewDiv.querySelector('img').src = '';
+                previewDiv.removeAttribute('data-image');
+            }
+        }
+
+        // トースト通知を表示
+        function showToast() {
+            const toast = document.getElementById('toast');
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // ページ読み込み時の初期化処理
+        document.addEventListener('DOMContentLoaded', () => {
+            initPlaces();
+            loadDraft();
+        });
+
+        // --- ここまで追加 ---
+        
+        // Lucideアイコンの初期化
+        lucide.createIcons();
+    </script>
+    <script src="auth.js"></script>`n</body>
+</html>
+

@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>システム管理設定 | Nigiwai App</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="settings.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+    <!-- 管理者ログインゲート (擬似セキュリティ) -->
+    <div id="login-gate">
+        <div class="login-box">
+            <i data-lucide="shield-alert"></i>
+            <h2>システム管理アクセス</h2>
+            <p>マスタデータやAPI設定を行う統括管理ページです。<br>パスワードを入力してください。</p>
+            <input type="password" id="adminPwd" class="pwd-input" placeholder="••••" onkeypress="handleEnter(event)">
+            
+            <p id="error-msg" style="color: #f85149; font-size: 12px; display: none; margin-top: -10px; margin-bottom: 16px;">
+                パスワードが正しくありません<br>（デモ用パスワード: <strong>1234</strong>）
+            </p>
+            
+            <button class="btn-admin" onclick="checkAuth()">認証して進む</button>
+            <a href="index.html" style="display: block; margin-top: 20px; color: #8b949e; font-size: 13px; text-decoration: none;">ダッシュボードに戻る</a>
+        </div>
+    </div>
+
+    <!-- 設定コンテンツ (認証後に表示) -->
+    <div id="settings-content" class="settings-container">
+        <div class="settings-header">
+            <h1><i data-lucide="settings" style="color: var(--admin-muted);"></i> システム環境設定</h1>
+            
+            <div class="header-controls">
+                <a href="index.html" class="back-link"><i data-lucide="arrow-left"></i> ダッシュボード</a>
+            </div>
+        </div>
+
+        <!-- タブナビゲーション -->
+        <div class="settings-tabs">
+            <button class="tab-btn active" onclick="switchTab('tab-master', this)"><i data-lucide="database"></i> マスタデータ管理</button>
+            <button class="tab-btn" onclick="switchTab('tab-persona', this)"><i data-lucide="bot"></i> AIペルソナ管理</button>
+            <button class="tab-btn" onclick="switchTab('tab-org', this)"><i data-lucide="building"></i> アカウント・組織管理</button>
+            <button class="tab-btn" onclick="switchTab('tab-api', this)"><i data-lucide="plug"></i> API連携設定</button>
+        </div>
+
+        <!-- タブ1: マスタデータ管理 -->
+        <div id="tab-master" class="tab-pane active">
+            
+            <div class="settings-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h3 style="margin: 0; padding: 0; border: none;"><i data-lucide="map"></i> 調査対象地 (Place) 一覧</h3>
+                    <button class="btn-admin" style="padding: 6px 12px; font-size: 13px;" onclick="addPlace()"><i data-lucide="plus" style="width: 14px; margin-right: 4px; vertical-align: middle;"></i> 追加</button>
+                </div>
+                <div id="placeListContainer" class="place-list">
+                    <!-- JSでリストを生成 -->
+                </div>
+            </div>
+
+            <div id="placeEditorSection" style="display: none;">
+                <div class="settings-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="margin-bottom: 20px;"><i data-lucide="edit"></i> 対象地情報</h3>
+                        <button class="btn-icon" style="color: #f85149;" onclick="deleteCurrentPlace()" title="この対象地を削除"><i data-lucide="trash-2"></i></button>
+                    </div>
+                    <div class="form-group">
+                        <label>対象地名称</label>
+                        <input type="text" id="placeName" placeholder="例: メブクス豊洲" oninput="updateCurrentPlace()">
+                    </div>
+                    <div class="form-group">
+                        <label>コンセプト・施設概要</label>
+                        <textarea id="placeConcept" placeholder="対象地のコンセプトを入力..." oninput="updateCurrentPlace()"></textarea>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3><i data-lucide="crosshair"></i> ゾーン (Zone) 構成</h3>
+                    <p style="font-size: 13px; color: var(--admin-muted); margin-bottom: 16px;">この対象地内のゾーン情報を管理します。現場入力画面の「場所」選択に連動します。</p>
+                    
+                    <table class="admin-table" style="margin-bottom: 16px;">
+                        <thead>
+                            <tr>
+                                <th>ゾーン名</th>
+                                <th>属性・用途</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="zoneTableBody">
+                            <!-- JSでゾーンを生成 -->
+                        </tbody>
+                    </table>
+                    <button class="btn-admin" style="background: transparent; border: 1px dashed var(--admin-border); color: var(--admin-muted); width: 100%;" onclick="addZoneToCurrentPlace()"><i data-lucide="plus" style="width: 16px; vertical-align: middle;"></i> ゾーンを追加する</button>
+                </div>
+            </div>
+            
+        </div>
+
+        <!-- タブ: AIペルソナ管理 -->
+        <div id="tab-persona" class="tab-pane">
+            <div class="settings-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h3 style="margin: 0; padding: 0; border: none;"><i data-lucide="bot"></i> AIペルソナ一覧</h3>
+                    <button class="btn-admin" style="padding: 6px 12px; font-size: 13px;" onclick="addPersona()"><i data-lucide="plus" style="width: 14px; margin-right: 4px; vertical-align: middle;"></i> 追加</button>
+                </div>
+                <div id="personaListContainer" class="place-list">
+                    <!-- JSでリストを生成 -->
+                </div>
+            </div>
+
+            <div id="personaEditorSection" style="display: none;">
+                <div class="settings-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="margin-bottom: 20px;"><i data-lucide="edit"></i> ペルソナ情報</h3>
+                        <button class="btn-icon" style="color: #f85149;" onclick="deleteCurrentPersona()" title="このペルソナを削除"><i data-lucide="trash-2"></i></button>
+                    </div>
+                    <div class="form-group">
+                        <label>ペルソナ名</label>
+                        <input type="text" id="personaName" placeholder="例: 活気重視ペルソナ" oninput="updateCurrentPersona()">
+                    </div>
+                    <div class="form-group">
+                        <label>音量感受性</label>
+                        <select id="personaSensitivity" onchange="updateCurrentPersona()">
+                            <option value="high">高い（大きな音を好む/活気として捉える）</option>
+                            <option value="low">低い（静かさを好む/大きな音を騒音として捉える）</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>重視する指標</label>
+                        <select id="personaIndicator" onchange="updateCurrentPersona()">
+                            <option value="liveliness">活気・盛り上がり</option>
+                            <option value="quietness">静けさ・リラックス</option>
+                            <option value="safety">安全性・清潔感</option>
+                            <option value="diversity">多様性・交流</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>行動目的</label>
+                        <input type="text" id="personaPurpose" placeholder="例: 家族でのお出かけ、ソロワーク" oninput="updateCurrentPersona()">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- タブ2: アカウント・組織管理 -->
+        <div id="tab-org" class="tab-pane">
+            <div class="settings-section">
+                <h3><i data-lucide="building"></i> 組織 (Tenant) プロファイル</h3>
+                <div class="form-group">
+                    <label>組織ID (Tenant ID)</label>
+                    <input type="text" id="tenantId" placeholder="org_xxxxxx" value="org_vertex_pt">
+                    <div class="help-text">データ分離のためのユニークな組織識別子です。</div>
+                </div>
+                <div class="form-group">
+                    <label>企業・組織名</label>
+                    <input type="text" id="orgName" placeholder="株式会社〇〇" value="株式会社ベルテクス・パートナーズ">
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h3><i data-lucide="users"></i> 所属ユーザー一覧</h3>
+                <div style="display: flex; justify-content: flex-end; margin-bottom: 12px;">
+                    <button class="btn-admin" style="width: auto; padding: 8px 16px; font-size: 13px;"><i data-lucide="user-plus" style="width: 14px; vertical-align: middle; margin-right: 4px;"></i> ユーザー招待</button>
+                </div>
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>氏名</th>
+                            <th>メールアドレス</th>
+                            <th>権限ロール</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>システム 管理者</td>
+                            <td>admin@example.com</td>
+                            <td><span class="role-badge role-admin">管理者</span></td>
+                            <td><button class="btn-icon"><i data-lucide="edit"></i></button></td>
+                        </tr>
+                        <tr>
+                            <td>調査員 A</td>
+                            <td>researcher_a@example.com</td>
+                            <td><span class="role-badge role-user">一般ユーザー</span></td>
+                            <td><button class="btn-icon"><i data-lucide="edit"></i></button></td>
+                        </tr>
+                        <tr>
+                            <td>調査員 B</td>
+                            <td>researcher_b@example.com</td>
+                            <td><span class="role-badge role-user">一般ユーザー</span></td>
+                            <td><button class="btn-icon"><i data-lucide="edit"></i></button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- タブ3: API連携設定 -->
+        <div id="tab-api" class="tab-pane">
+            <div class="settings-section" id="api-section">
+
+                <h3><i data-lucide="mic"></i> Auphonic API 連携設定</h3>
+                <p style="font-size: 13px; color: var(--admin-muted); margin-bottom: 24px; line-height: 1.6;">
+                    音声解析機能を利用するためのAPIキーを設定します。<br>
+                    ※ セキュリティ保護のため、キーはサーバーに送信されず、お使いのブラウザ (LocalStorage) 内にのみ保存されます。
+                </p>
+                
+                <div class="form-group">
+                    <label>API Bearer Token (アクセスキー)</label>
+                    <input type="password" id="auphonicKey" placeholder="sk_test_xxxxxxxxxxxxxxxxxxxx">
+                    <div class="help-text">Auphonic開発者コンソールで発行したトークンを入力してください。</div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Preset UUID (処理プリセット指定)</label>
+                    <input type="text" id="auphonicPreset" placeholder="例: 8bF... (任意)">
+                    <div class="help-text">ノイズ除去やラウドネス正規化の処理ルールを定めたプリセットIDです。</div>
+                </div>
+
+                <div class="form-group">
+                    <label>Webhook URL (解析結果の受け取り)</label>
+                    <input type="text" id="webhookUrl" placeholder="https://your-domain.com/api/webhook" value="https://nigiwai-app.local/webhook/auphonic">
+                    <div class="help-text">解析完了時にAuphonicから結果データ（JSON）をPOSTするためのエンドポイントです。</div>
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid var(--admin-border); margin: 30px 0;">
+
+                <h3><i data-lucide="database"></i> データ保護・バックアップ設定</h3>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>ローカルストレージの自動バックアップ間隔</label>
+                    <select id="backupInterval">
+                        <option value="off">オフ (手動のみ)</option>
+                        <option value="1h" selected>1時間ごと</option>
+                        <option value="1d">1日ごと</option>
+                        <option value="always">アクセス時毎回</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- 保存アクション -->
+        <div style="display: flex; justify-content: flex-end; gap: 16px; margin-top: 30px;">
+            <button class="btn-admin" style="background: transparent; border: 1px solid var(--admin-border); width: auto; color: var(--admin-muted);" onclick="clearSettings()">
+                LocalStorage リセット
+            </button>
+            <button class="btn-admin" style="width: auto; padding: 12px 32px;" onclick="saveSettings()">
+                <i data-lucide="save" style="width: 16px; display: inline-block; vertical-align: text-top; margin-right: 6px;"></i> 全設定を保存する
+            </button>
+        </div>
+    </div>
+
+    <!-- トースト通知 -->
+    <div id="toast" class="toast">
+        <i data-lucide="check-circle"></i> LocalStorageに設定を保存しました
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // ログインゲートの処理
+        function checkAuth() {
+            const pwd = document.getElementById('adminPwd').value;
+            if(pwd === '1234') { // デモ用パスワード
+                document.getElementById('login-gate').style.display = 'none';
+                document.getElementById('settings-content').style.display = 'block';
+                loadSettings(); // 認証成功時に保存されている設定を読み込む
+            } else {
+                document.getElementById('error-msg').style.display = 'block';
+                document.getElementById('adminPwd').value = '';
+            }
+        }
+
+        function handleEnter(e) {
+            if(e.key === 'Enter') checkAuth();
+        }
+
+        // タブ切り替えロジック
+        function switchTab(tabId, btnElement) {
+            // タブボタンのアクティブ切り替え
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            btnElement.classList.add('active');
+
+            // パネルのアクティブ切り替え
+            document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+        }
+
+
+
+        // --- Place / Zone 管理のステート ---
+        let placesData = [];
+        let currentPlaceId = null;
+
+        function migrateOldData() {
+            // 旧バージョンのデータがあれば新バージョンへ移行
+            const oldName = localStorage.getItem('sys_place_name');
+            if (oldName && !localStorage.getItem('sys_places')) {
+                const oldConcept = localStorage.getItem('sys_place_concept') || '';
+                placesData = [{
+                    id: 'mebks-toyosu', // デフォルトID
+                    name: oldName,
+                    concept: oldConcept,
+                    zones: [
+                        { id: 'zone-a', name: 'ゾーンA: 入口前', attr: 'エントランス / 待機列' },
+                        { id: 'zone-b', name: 'ゾーンB: 飲食エリア', attr: '主要滞在エリア / 飲食' },
+                        { id: 'zone-c', name: 'ゾーンC: 通路沿い', attr: '回遊動線 / ショッピング' }
+                    ]
+                }];
+                // 移行後、旧データは消さないが新データとして保存
+                localStorage.setItem('sys_places', JSON.stringify(placesData));
+            }
+        }
+
+        function renderPlaceList() {
+            const container = document.getElementById('placeListContainer');
+            container.innerHTML = '';
+            
+            if (placesData.length === 0) {
+                container.innerHTML = '<p style="color: var(--admin-muted); font-size: 13px; text-align: center; padding: 16px;">登録されている対象地はありません。</p>';
+                document.getElementById('placeEditorSection').style.display = 'none';
+                return;
+            }
+
+            placesData.forEach(place => {
+                const item = document.createElement('div');
+                item.className = 'place-list-item' + (place.id === currentPlaceId ? ' active' : '');
+                item.onclick = () => selectPlace(place.id);
+                
+                item.innerHTML = `
+                    <div>
+                        <div class="place-list-item-title">${place.name || '名称未設定'}</div>
+                        <div class="place-list-item-meta">${place.zones.length} ゾーン設定済み</div>
+                    </div>
+                    <i data-lucide="chevron-right" style="color: var(--admin-muted); width: 16px;"></i>
+                `;
+                container.appendChild(item);
+            });
+            lucide.createIcons();
+        }
+
+        function selectPlace(placeId) {
+            currentPlaceId = placeId;
+            renderPlaceList(); // active状態の更新
+            
+            const place = placesData.find(p => p.id === placeId);
+            if (place) {
+                document.getElementById('placeEditorSection').style.display = 'block';
+                document.getElementById('placeName').value = place.name;
+                document.getElementById('placeConcept').value = place.concept;
+                renderZoneList();
+            }
+        }
+
+        function updateCurrentPlace() {
+            if (!currentPlaceId) return;
+            const place = placesData.find(p => p.id === currentPlaceId);
+            if (place) {
+                place.name = document.getElementById('placeName').value;
+                place.concept = document.getElementById('placeConcept').value;
+                renderPlaceList(); // リストの名前表示を即時更新
+            }
+        }
+
+        function addPlace() {
+            const newId = 'place_' + Date.now();
+            placesData.push({
+                id: newId,
+                name: '新しい対象地',
+                concept: '',
+                zones: []
+            });
+            selectPlace(newId);
+        }
+
+        function deleteCurrentPlace() {
+            if (!currentPlaceId) return;
+            if (confirm('この対象地と、紐づくすべてのゾーンを削除しますか？')) {
+                placesData = placesData.filter(p => p.id !== currentPlaceId);
+                currentPlaceId = placesData.length > 0 ? placesData[0].id : null;
+                
+                if (currentPlaceId) {
+                    selectPlace(currentPlaceId);
+                } else {
+                    document.getElementById('placeEditorSection').style.display = 'none';
+                    renderPlaceList();
+                }
+            }
+        }
+
+        function renderZoneList() {
+            const tbody = document.getElementById('zoneTableBody');
+            tbody.innerHTML = '';
+            
+            const place = placesData.find(p => p.id === currentPlaceId);
+            if (!place) return;
+
+            if (place.zones.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--admin-muted);">ゾーンが登録されていません</td></tr>';
+                return;
+            }
+
+            place.zones.forEach((zone, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><input type="text" value="${zone.name}" oninput="updateZone(${index}, 'name', this.value)" style="background:transparent; border:none; color:inherit; width: 100%; border-bottom: 1px solid var(--admin-border); padding: 4px;"></td>
+                    <td><input type="text" value="${zone.attr}" oninput="updateZone(${index}, 'attr', this.value)" style="background:transparent; border:none; color:inherit; width: 100%; border-bottom: 1px solid var(--admin-border); padding: 4px;"></td>
+                    <td><button class="btn-icon" onclick="deleteZone(${index})"><i data-lucide="trash-2"></i></button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+            lucide.createIcons();
+        }
+
+        function updateZone(index, field, value) {
+            const place = placesData.find(p => p.id === currentPlaceId);
+            if (place && place.zones[index]) {
+                place.zones[index][field] = value;
+            }
+            renderPlaceList(); // メタ情報のゾーン数を更新するため
+        }
+
+        function addZoneToCurrentPlace() {
+            const place = placesData.find(p => p.id === currentPlaceId);
+            if (place) {
+                place.zones.push({
+                    id: 'zone_' + Date.now(),
+                    name: '新しいゾーン',
+                    attr: ''
+                });
+                renderZoneList();
+                renderPlaceList();
+            }
+        }
+
+        function deleteZone(index) {
+            const place = placesData.find(p => p.id === currentPlaceId);
+            if (place) {
+                place.zones.splice(index, 1);
+                renderZoneList();
+                renderPlaceList();
+            }
+        }
+
+        // --- Persona 管理のステート ---
+        let personasData = [];
+        let currentPersonaId = null;
+
+        function renderPersonaList() {
+            const container = document.getElementById('personaListContainer');
+            container.innerHTML = '';
+            
+            if (personasData.length === 0) {
+                container.innerHTML = '<p style="color: var(--admin-muted); font-size: 13px; text-align: center; padding: 16px;">登録されているペルソナはありません。</p>';
+                document.getElementById('personaEditorSection').style.display = 'none';
+                return;
+            }
+
+            personasData.forEach(persona => {
+                const item = document.createElement('div');
+                item.className = 'place-list-item' + (persona.id === currentPersonaId ? ' active' : '');
+                item.onclick = () => selectPersona(persona.id);
+                
+                let indicatorName = '';
+                if(persona.indicator === 'liveliness') indicatorName = '活気重視';
+                if(persona.indicator === 'quietness') indicatorName = '静けさ重視';
+                if(persona.indicator === 'safety') indicatorName = '安全性重視';
+                if(persona.indicator === 'diversity') indicatorName = '多様性重視';
+
+                item.innerHTML = `
+                    <div>
+                        <div class="place-list-item-title">${persona.name || '名称未設定'}</div>
+                        <div class="place-list-item-meta">${indicatorName} / ${persona.purpose || '目的未設定'}</div>
+                    </div>
+                    <i data-lucide="chevron-right" style="color: var(--admin-muted); width: 16px;"></i>
+                `;
+                container.appendChild(item);
+            });
+            lucide.createIcons();
+        }
+
+        function selectPersona(personaId) {
+            currentPersonaId = personaId;
+            renderPersonaList();
+            
+            const p = personasData.find(x => x.id === personaId);
+            if (p) {
+                document.getElementById('personaEditorSection').style.display = 'block';
+                document.getElementById('personaName').value = p.name || '';
+                document.getElementById('personaSensitivity').value = p.sensitivity || 'high';
+                document.getElementById('personaIndicator').value = p.indicator || 'liveliness';
+                document.getElementById('personaPurpose').value = p.purpose || '';
+            }
+        }
+
+        function updateCurrentPersona() {
+            if (!currentPersonaId) return;
+            const p = personasData.find(x => x.id === currentPersonaId);
+            if (p) {
+                p.name = document.getElementById('personaName').value;
+                p.sensitivity = document.getElementById('personaSensitivity').value;
+                p.indicator = document.getElementById('personaIndicator').value;
+                p.purpose = document.getElementById('personaPurpose').value;
+                renderPersonaList();
+            }
+        }
+
+        function addPersona() {
+            const newId = 'persona_' + Date.now();
+            personasData.push({
+                id: newId,
+                name: '新しいAIペルソナ',
+                sensitivity: 'high',
+                indicator: 'liveliness',
+                purpose: ''
+            });
+            selectPersona(newId);
+        }
+
+        function deleteCurrentPersona() {
+            if (!currentPersonaId) return;
+            if (confirm('このペルソナを削除しますか？')) {
+                personasData = personasData.filter(x => x.id !== currentPersonaId);
+                currentPersonaId = personasData.length > 0 ? personasData[0].id : null;
+                
+                if (currentPersonaId) {
+                    selectPersona(currentPersonaId);
+                } else {
+                    document.getElementById('personaEditorSection').style.display = 'none';
+                    renderPersonaList();
+                }
+            }
+        }
+
+        // LocalStorageへの一括保存処理
+        function saveSettings() {
+            updateCurrentPlace();
+            updateCurrentPersona();
+            
+            // Placeデータ
+            localStorage.setItem('sys_places', JSON.stringify(placesData));
+            // Personaデータ
+            localStorage.setItem('sys_personas', JSON.stringify(personasData));
+
+            // API連携
+            localStorage.setItem('auphonic_api_key', document.getElementById('auphonicKey').value);
+            localStorage.setItem('auphonic_preset_id', document.getElementById('auphonicPreset').value);
+            localStorage.setItem('auphonic_webhook_url', document.getElementById('webhookUrl').value);
+            localStorage.setItem('sys_backup_interval', document.getElementById('backupInterval').value);
+
+            // 組織データ
+            localStorage.setItem('sys_tenant_id', document.getElementById('tenantId').value);
+            localStorage.setItem('sys_org_name', document.getElementById('orgName').value);
+
+            showToast();
+        }
+
+        // LocalStorageからの読み込み処理
+        function loadSettings() {
+            // API連携
+            const apiKey = localStorage.getItem('auphonic_api_key');
+            const presetId = localStorage.getItem('auphonic_preset_id');
+            const webhookUrl = localStorage.getItem('auphonic_webhook_url');
+            const backupInt = localStorage.getItem('sys_backup_interval');
+            
+            if(apiKey) document.getElementById('auphonicKey').value = apiKey;
+            if(presetId) document.getElementById('auphonicPreset').value = presetId;
+            if(webhookUrl) document.getElementById('webhookUrl').value = webhookUrl;
+            if(backupInt) document.getElementById('backupInterval').value = backupInt;
+
+            // マスタデータ
+            migrateOldData();
+            const savedPlaces = localStorage.getItem('sys_places');
+            if (savedPlaces) {
+                try {
+                    placesData = JSON.parse(savedPlaces);
+                } catch(e) { console.error(e); placesData = []; }
+            }
+            
+            if (placesData.length > 0) {
+                selectPlace(placesData[0].id);
+            } else {
+                renderPlaceList();
+            }
+
+            // ペルソナデータ
+            const savedPersonas = localStorage.getItem('sys_personas');
+            if (savedPersonas) {
+                try {
+                    personasData = JSON.parse(savedPersonas);
+                } catch(e) { console.error(e); personasData = []; }
+            }
+            if (personasData.length > 0) {
+                selectPersona(personasData[0].id);
+            } else {
+                renderPersonaList();
+            }
+
+            // 組織データ
+            const tenantId = localStorage.getItem('sys_tenant_id');
+            const orgName = localStorage.getItem('sys_org_name');
+            if(tenantId) document.getElementById('tenantId').value = tenantId;
+            if(orgName) document.getElementById('orgName').value = orgName;
+        }
+
+        // 設定のクリア
+        function clearSettings() {
+            if(confirm('LocalStorageに保存されているすべての設定データを消去しますか？')) {
+                localStorage.clear(); // すべてクリア
+                
+                // フォームのリセット (初期値へ戻す)
+                document.getElementById('auphonicKey').value = '';
+                document.getElementById('auphonicPreset').value = '';
+                document.getElementById('webhookUrl').value = 'https://nigiwai-app.local/webhook/auphonic';
+                document.getElementById('backupInterval').value = '1h';
+
+                document.getElementById('tenantId').value = 'org_vertex_pt';
+                document.getElementById('orgName').value = '株式会社ベルテクス・パートナーズ';
+                
+                placesData = [];
+                currentPlaceId = null;
+                document.getElementById('placeEditorSection').style.display = 'none';
+                renderPlaceList();
+
+                personasData = [];
+                currentPersonaId = null;
+                document.getElementById('personaEditorSection').style.display = 'none';
+                renderPersonaList();
+            }
+        }
+
+        // トースト通知の表示
+        function showToast() {
+            const toast = document.getElementById('toast');
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+    <script src="auth.js"></script>`n</body>
+</html>
+

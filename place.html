@@ -1,0 +1,182 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>対象地詳細 - メブクス豊洲 | Nigiwai App</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="place.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i data-lucide="activity"></i>
+                <span>Nigiwai</span>
+            </div>
+            <nav>
+                <a href="index.html"><i data-lucide="layout-dashboard"></i> ダッシュボード</a>
+                <a href="place.html" class="active"><i data-lucide="map"></i> 対象地</a>
+                <a href="session.html"><i data-lucide="calendar"></i> セッション</a>
+                <a href="zone.html"><i data-lucide="crosshair"></i> ゾーン詳細</a>
+                <a href="evaluator.html"><i data-lucide="users"></i> 評価者詳細</a>
+                <a href="input.html"><i data-lucide="edit-3"></i> 現場入力 (UI)</a>
+                <a href="audio.html"><i data-lucide="mic"></i> 音声解析連携</a>
+                <a href="report.html"><i data-lucide="bar-chart-2"></i> 分析レポート</a>
+                <a href="settings.html" class="admin-only"><i data-lucide="settings"></i> システム設定</a>
+            </nav>
+            <div class="sidebar-footer" style="padding: 20px; border-top: 1px solid var(--border-color); margin-top: auto;">
+                <span style="font-size: 11px; color: var(--text-secondary); margin-bottom: 8px; display: block; text-transform: uppercase; letter-spacing: 0.05em;">権限モード</span>
+                <div class="mode-toggle" id="globalModeToggle" data-mode="admin">
+                    <div class="toggle-slider"></div>
+                    <div class="toggle-option active" data-val="admin">管理者</div>
+                    <div class="toggle-option" data-val="user">調査員</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header>
+                <div class="header-title">
+                    <div class="breadcrumb">
+                        <a href="index.html">対象地一覧</a> <i data-lucide="chevron-right"></i> <span>メブクス豊洲</span>
+                    </div>
+                    <div class="title-with-badge">
+                        <h1>メブクス豊洲</h1>
+                        <span class="badge">マルシェ</span>
+                    </div>
+                </div>
+                <div class="user-profile">
+                    <img src="https://ui-avatars.com/api/?name=Admin&background=0D8ABC&color=fff" alt="User Profile">
+                </div>
+            </header>
+
+            <div class="place-grid">
+                <!-- 左カラム：地図とゾーン・チャート -->
+                <div class="left-col">
+                    <div class="glass card-panel map-panel">
+                        <div class="panel-header">
+                            <h3>地図・ゾーン構成</h3>
+                            <button class="btn-icon-small"><i data-lucide="maximize-2"></i></button>
+                        </div>
+                        <div class="map-container">
+                            <div class="map-bg"></div>
+                            <div class="zone-pin" style="top: 30%; left: 40%;">
+                                <div class="pin-dot"></div>
+                                <div class="pin-label">ゾーンA: 入口前</div>
+                            </div>
+                            <div class="zone-pin" style="top: 60%; left: 60%;">
+                                <div class="pin-dot"></div>
+                                <div class="pin-label">ゾーンB: 飲食エリア</div>
+                            </div>
+                            <div class="zone-pin" style="top: 40%; left: 75%;">
+                                <div class="pin-dot"></div>
+                                <div class="pin-label">ゾーンC: 通路沿い</div>
+                            </div>
+                        </div>
+                        <div class="zone-stats mt-4">
+                            <div class="zone-stat-item">
+                                <span class="zone-name">ゾーンA</span>
+                                <span class="zone-score">スコア: 4.2 <i data-lucide="trending-up" class="text-green"></i></span>
+                            </div>
+                            <div class="zone-stat-item">
+                                <span class="zone-name">ゾーンB</span>
+                                <span class="zone-score">スコア: 4.5 <i data-lucide="trending-up" class="text-green"></i></span>
+                            </div>
+                            <div class="zone-stat-item">
+                                <span class="zone-name">ゾーンC</span>
+                                <span class="zone-score">スコア: 3.8 <i data-lucide="minus" class="text-gray"></i></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass card-panel chart-panel">
+                        <div class="panel-header">
+                            <h3>にぎわい傾向分析 (KNF指標)</h3>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="knfRadarChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右カラム：対象地プロフィール・セッション -->
+                <div class="right-col">
+                    <div class="glass card-panel profile-panel">
+                        <div class="panel-header">
+                            <h3>対象地プロフィール</h3>
+                            <button class="btn-secondary btn-sm" style="width: auto;">編集</button>
+                        </div>
+                        
+                        <div class="tags-section">
+                            <span class="tag">#屋外マルシェ</span>
+                            <span class="tag">#ファミリー層</span>
+                            <span class="tag">#週末イベント</span>
+                        </div>
+
+                        <div class="profile-list">
+                            <div class="profile-item">
+                                <h4><i data-lucide="info"></i> コンセプト</h4>
+                                <p>地域住民と生産者を繋ぐ、開放的で賑やかな都市型マルシェ。食と体験の提供によるコミュニティ形成。</p>
+                            </div>
+                            <div class="profile-item">
+                                <h4><i data-lucide="box"></i> 空間特性</h4>
+                                <p>屋外、広い動線、キッチンカー配置エリアあり。中央にパラソル付き滞在用座席配置。</p>
+                            </div>
+                            <div class="profile-item">
+                                <h4><i data-lucide="calendar-days"></i> 開催・運用条件</h4>
+                                <p>毎月第2・第4土曜日開催。雨天時は規模縮小。時間帯は10:00〜16:00。</p>
+                            </div>
+                            <div class="profile-item">
+                                <h4><i data-lucide="rss"></i> 沿革 / 発信傾向</h4>
+                                <p>2023年春より開始。SNS（Instagram）での出店者紹介が中心。開催週の木曜にエンゲージメント上昇傾向。</p>
+                            </div>
+                            <div class="profile-item">
+                                <h4><i data-lucide="lightbulb"></i> 仮説メモ</h4>
+                                <p>昼時（12:00-13:00）の飲食エリア（ゾーンB）の音量が急増するが、滞在時間が長いためKNF総合スコアは高まると想定。</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass card-panel recent-sessions">
+                        <div class="panel-header">
+                            <h3>直近の調査セッション</h3>
+                            <a href="#" class="view-all">すべて見る</a>
+                        </div>
+                        <ul class="session-list">
+                            <li>
+                                <div class="session-info">
+                                    <strong>2026/04/18 午前調査</strong>
+                                    <span>晴れ / 評価者: 12名</span>
+                                </div>
+                                <button class="btn-icon-small"><i data-lucide="arrow-right"></i></button>
+                            </li>
+                            <li>
+                                <div class="session-info">
+                                    <strong>2026/04/18 午後調査</strong>
+                                    <span>晴れ / 評価者: 15名</span>
+                                </div>
+                                <button class="btn-icon-small"><i data-lucide="arrow-right"></i></button>
+                            </li>
+                            <li>
+                                <div class="session-info">
+                                    <strong>2026/03/28 午前調査</strong>
+                                    <span>曇り / 評価者: 10名</span>
+                                </div>
+                                <button class="btn-icon-small"><i data-lucide="arrow-right"></i></button>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="place.js"></script>
+    <script src="auth.js"></script>`n</body>
+</html>
+

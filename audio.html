@@ -1,0 +1,341 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音声解析 (Auphonic連携) | Nigiwai App</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="audio.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i data-lucide="activity"></i>
+                <span>Nigiwai</span>
+            </div>
+            <nav>
+                <a href="index.html"><i data-lucide="layout-dashboard"></i> ダッシュボード</a>
+                <a href="place.html"><i data-lucide="map"></i> 対象地</a>
+                <a href="session.html"><i data-lucide="calendar"></i> セッション</a>
+                <a href="zone.html"><i data-lucide="crosshair"></i> ゾーン詳細</a>
+                <a href="evaluator.html"><i data-lucide="users"></i> 評価者詳細</a>
+                <a href="input.html"><i data-lucide="edit-3"></i> 現場入力 (UI)</a>
+                <a href="audio.html" class="active"><i data-lucide="mic"></i> 音声解析連携</a>
+                <a href="report.html"><i data-lucide="bar-chart-2"></i> 分析レポート</a>
+                <a href="settings.html" class="admin-only"><i data-lucide="settings"></i> システム設定</a>
+            </nav>
+            <div class="sidebar-footer" style="padding: 20px; border-top: 1px solid var(--border-color); margin-top: auto;">
+                <span style="font-size: 11px; color: var(--text-secondary); margin-bottom: 8px; display: block; text-transform: uppercase; letter-spacing: 0.05em;">権限モード</span>
+                <div class="mode-toggle" id="globalModeToggle" data-mode="admin">
+                    <div class="toggle-slider"></div>
+                    <div class="toggle-option active" data-val="admin">管理者</div>
+                    <div class="toggle-option" data-val="user">調査員</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header>
+                <div class="header-title">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <h1>Auphonic 音響解析連携</h1>
+                        <span class="badge" style="background: rgba(139, 92, 246, 0.2); color: #c4b5fd;">客観評価モジュール</span>
+                    </div>
+                </div>
+                <div class="user-profile">
+                    <img src="https://ui-avatars.com/api/?name=Admin&background=0D8ABC&color=fff" alt="User Profile">
+                </div>
+            </header>
+
+            <div class="upload-container">
+                
+                <!-- 紐付け設定 -->
+                <div class="binding-card glass">
+                    <h3><i data-lucide="link" style="color: var(--accent-color);"></i> データの紐付け先を設定</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>対象地</label>
+                            <select class="custom-select">
+                                <option>メブクス豊洲</option>
+                                <option>その他</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>セッション</label>
+                            <select class="custom-select">
+                                <option>2026/04/18 午前 (10:00-13:00)</option>
+                                <option>2026/04/18 午後 (13:00-16:00)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>対象ゾーン</label>
+                            <select class="custom-select">
+                                <option>ゾーンB (飲食エリア)</option>
+                                <option>ゾーンA (エントランス)</option>
+                                <option>ゾーンC (休憩スペース)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>観測点 (任意)</label>
+                            <select class="custom-select">
+                                <option>Obs-01 (中央テーブル)</option>
+                                <option>Obs-02 (キッチンカー前)</option>
+                                <option>全体 (特定なし)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ファイルドロップゾーン -->
+                <div id="dropZone" class="drop-zone" onclick="document.getElementById('fileInput').click()">
+                    <i data-lucide="upload-cloud"></i>
+                    <h4>録音した音声ファイルをドロップするか、クリックして選択</h4>
+                    <p>対応フォーマット: MP3, WAV, M4A, FLAC (最大 500MB)</p>
+                    <input type="file" id="fileInput" accept="audio/*" style="display: none;" onchange="handleFileSelect(event)">
+                </div>
+
+                <!-- プログレスバー（モック） -->
+                <div id="progressContainer" class="progress-container glass">
+                    <div class="progress-header">
+                        <div id="progressStatusText" class="progress-status uploading">
+                            <i id="progressIcon" data-lucide="upload"></i> 
+                            <span id="progressLabel">Auphonic API へ送信中...</span>
+                            <div id="processingWave" class="processing-wave">
+                                <span></span><span></span><span></span>
+                            </div>
+                        </div>
+                        <div id="progressPercent" style="font-weight: 700; font-family: monospace;">0%</div>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div id="progressBarFill" class="progress-bar-fill"></div>
+                    </div>
+                    <p id="progressDetail" style="margin-top: 12px; font-size: 13px; color: var(--text-secondary);">ファイルのアップロードを準備しています...</p>
+                </div>
+
+                <!-- 解析結果プレビュー -->
+                <div id="resultsContainer" class="results-container">
+                    <h3 style="margin-bottom: 20px; font-size: 18px; display: flex; align-items: center; gap: 8px;">
+                        <i data-lucide="check-circle" style="color: #10b981;"></i> 解析が完了しました
+                    </h3>
+                    
+                    <!-- 抽出メタデータ -->
+                    <div class="binding-card glass" style="margin-bottom: 24px;">
+                        <h4 style="font-size: 14px; margin-bottom: 16px; color: var(--text-secondary);">Auphonic 抽出メタデータ (要約)</h4>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
+                            <div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">平均音量 (ラウドネス)</div>
+                                <div style="font-size: 24px; font-weight: 700; color: #f8fafc;">-14.2 <span style="font-size: 12px; font-weight: normal;">LUFS</span></div>
+                            </div>
+                            <div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">ピーク</div>
+                                <div style="font-size: 24px; font-weight: 700; color: #ef4444;">-1.5 <span style="font-size: 12px; font-weight: normal;">dBTP</span></div>
+                            </div>
+                            <div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">ノイズ低減処理</div>
+                                <div style="font-size: 24px; font-weight: 700; color: #10b981;">適用済</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">会話推定占有率</div>
+                                <div style="font-size: 24px; font-weight: 700; color: #f59e0b;">68 <span style="font-size: 12px; font-weight: normal;">%</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="charts-grid">
+                        <!-- 折れ線グラフ -->
+                        <div class="chart-card glass">
+                            <h4><i data-lucide="activity" style="color: #3b82f6;"></i> 音量の時間推移 (LUFS)</h4>
+                            <div class="chart-wrapper">
+                                <canvas id="volumeChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <!-- 構成比ドーナツチャート -->
+                        <div class="chart-card glass">
+                            <h4><i data-lucide="pie-chart" style="color: #f59e0b;"></i> 音声イベント構成</h4>
+                            <div class="chart-wrapper">
+                                <canvas id="eventChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="action-footer">
+                        <button class="btn-primary" style="padding: 14px 28px; font-size: 15px;" onclick="saveToSession()">
+                            <i data-lucide="database"></i> このデータをセッションに登録する
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // ドロップゾーンのエフェクトとイベント
+        const dropZone = document.getElementById('dropZone');
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if(e.dataTransfer.files.length > 0) {
+                startUploadMock(e.dataTransfer.files[0].name);
+            }
+        });
+
+        function handleFileSelect(event) {
+            if(event.target.files.length > 0) {
+                startUploadMock(event.target.files[0].name);
+            }
+        }
+
+        // アップロードと解析のモックアニメーション
+        function startUploadMock(fileName) {
+            // LocalStorageからAPIキーを確認（設定画面で保存されたもの）
+            const apiKey = localStorage.getItem('auphonic_api_key');
+            if(!apiKey) {
+                alert('【システム通知】\nAuphonic APIキーが設定されていません。\n管理者設定画面（settings.html）でキーを登録してください。\n\n※今回はデモのため、このまま解析シミュレーションを進行します。');
+            }
+
+            dropZone.style.display = 'none';
+            const progressContainer = document.getElementById('progressContainer');
+            const fill = document.getElementById('progressBarFill');
+            const percent = document.getElementById('progressPercent');
+            const label = document.getElementById('progressLabel');
+            const detail = document.getElementById('progressDetail');
+            const statusText = document.getElementById('progressStatusText');
+            const icon = document.getElementById('progressIcon');
+            const wave = document.getElementById('processingWave');
+            
+            progressContainer.style.display = 'block';
+            detail.innerText = `対象ファイル: ${fileName} (15.4 MB)`;
+            
+            // アップロードフェーズ (0 -> 100%)
+            let p = 0;
+            const uploadInterval = setInterval(() => {
+                p += Math.floor(Math.random() * 8) + 4; // ランダムに進む
+                if(p >= 100) {
+                    p = 100;
+                    clearInterval(uploadInterval);
+                    fill.style.width = '100%';
+                    percent.innerText = '100%';
+                    
+                    // Webhook待機（解析フェーズ）へ移行
+                    setTimeout(() => {
+                        fill.style.background = '#f59e0b'; // 黄色に変更
+                        statusText.className = 'progress-status processing';
+                        icon.setAttribute('data-lucide', 'cpu');
+                        lucide.createIcons();
+                        label.innerText = 'AuphonicによるAI解析中 (Webhook待機)';
+                        percent.innerText = '';
+                        wave.style.display = 'flex';
+                        detail.innerText = 'バックグラウンドノイズの除去、ラウドネス正規化、および特徴抽出を実行しています...';
+                        
+                        // 解析完了まで待機
+                        setTimeout(finishAnalysis, 3500);
+                    }, 500);
+                } else {
+                    fill.style.width = p + '%';
+                    percent.innerText = p + '%';
+                }
+            }, 250);
+        }
+
+        function finishAnalysis() {
+            const progressContainer = document.getElementById('progressContainer');
+            progressContainer.style.display = 'none';
+            
+            const resultsContainer = document.getElementById('resultsContainer');
+            resultsContainer.style.display = 'block';
+            
+            drawCharts();
+        }
+
+        function drawCharts() {
+            Chart.defaults.color = '#94a3b8';
+            Chart.defaults.font.family = "'Outfit', -apple-system, sans-serif";
+
+            // 折れ線グラフ (音量推移)
+            const vCtx = document.getElementById('volumeChart').getContext('2d');
+            const gradient = vCtx.createLinearGradient(0, 0, 0, 250);
+            gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)');
+            gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
+
+            new Chart(vCtx, {
+                type: 'line',
+                data: {
+                    labels: ['0分', '5分', '10分', '15分', '20分', '25分', '30分'],
+                    datasets: [{
+                        label: '音量 (LUFS)',
+                        data: [-24, -22, -18, -14, -15, -19, -20],
+                        borderColor: '#3b82f6',
+                        backgroundColor: gradient,
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { min: -30, max: -10, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            // ドーナツチャート (音声イベント構成)
+            const eCtx = document.getElementById('eventChart').getContext('2d');
+            new Chart(eCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['会話・歓声', 'BGM', '環境音(足音等)', '沈黙'],
+                    datasets: [{
+                        data: [68, 15, 12, 5],
+                        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#475569'],
+                        borderWidth: 1,
+                        borderColor: 'rgba(0,0,0,0.5)'
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    cutout: '75%',
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#e2e8f0', padding: 15, boxWidth: 10 } }
+                    }
+                }
+            });
+        }
+
+        function saveToSession() {
+            const btn = document.querySelector('.action-footer .btn-primary');
+            btn.innerHTML = '<i data-lucide="check"></i> 登録完了';
+            btn.style.background = '#10b981';
+            btn.style.border = 'none';
+            lucide.createIcons();
+            
+            // 少し待って対象地ダッシュボードなどに遷移させる想定
+            setTimeout(() => {
+                window.location.href = 'zone.html';
+            }, 1000);
+        }
+    </script>
+    <script src="auth.js"></script>`n</body>
+</html>
+

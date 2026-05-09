@@ -1,0 +1,87 @@
+/* Report Page Specific Styles */
+.chart-wrapper {
+    height: 350px;
+    width: 100%;
+}
+
+.report-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin-top: 32px;
+}
+
+.bar-chart-wrapper {
+    height: 250px;
+    width: 100%;
+}
+
+.event-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.event-list li {
+    display: flex;
+    gap: 16px;
+    background: rgba(0,0,0,0.25);
+    padding: 16px;
+    border-radius: 12px;
+    align-items: flex-start;
+}
+
+.event-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.bg-blue { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+.bg-purple { background: rgba(139, 92, 246, 0.2); color: #c084fc; }
+.bg-gray { background: rgba(100, 116, 139, 0.2); color: #94a3b8; }
+
+.event-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.event-content strong {
+    font-size: 15px;
+    color: var(--text-primary);
+}
+
+.event-content span {
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+/* 共通タブ */
+.tabs {
+    display: flex;
+    gap: 12px;
+    background: rgba(0,0,0,0.2);
+    padding: 4px;
+    border-radius: 10px;
+}
+.tab {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+.tab.active {
+    background: rgba(255,255,255,0.1);
+    color: var(--text-primary);
+}

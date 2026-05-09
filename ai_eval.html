@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AIペルソナ評価 | Nigiwai App</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="input.css">
+    <style>
+        .step-section {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+        .step-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #e2e8f0;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .step-title span.badge {
+            background: #3b82f6;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        .audio-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .audio-item {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .audio-item:hover { border-color: #64748b; }
+        .audio-item input[type="radio"] { margin: 0; }
+        .persona-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+        .persona-card {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            cursor: pointer;
+        }
+        .eval-result-card {
+            background: #0f172a;
+            border: 1px solid #3b82f6;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .eval-result-card h4 {
+            margin: 0 0 12px 0;
+            color: #60a5fa;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .eval-score {
+            font-size: 24px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 12px;
+        }
+        .eval-comment {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #cbd5e1;
+        }
+        .btn-ai-run {
+            background: linear-gradient(135deg, #8b5cf6, #6366f1);
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.9);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            color: white;
+        }
+    </style>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <header class="input-header">
+        <a href="index.html" class="back-link"><i data-lucide="chevron-left"></i> ダッシュボード</a>
+        <div class="input-title">
+            <i data-lucide="bot" style="color: #8b5cf6;"></i>
+            AIペルソナ評価
+        </div>
+    </header>
+
+    <div style="padding: 20px;">
+        <p style="color: #94a3b8; font-size: 14px; margin-bottom: 24px; line-height: 1.5;">
+            収集・解析済みの音響データに対し、登録されたAIペルソナを用いて多角的な自動評価を行います。
+        </p>
+
+        <!-- Step 1 -->
+        <div class="step-section">
+            <div class="step-title"><span class="badge">1</span> 評価対象の設定</div>
+            <div class="context-group full-width" style="margin-bottom: 12px;">
+                <label>場所</label>
+                <select id="eval-location" class="context-input" onchange="updateZoneOptions()">
+                    <option value="">選択してください</option>
+                </select>
+            </div>
+            <div class="context-group full-width">
+                <label>セクション・ゾーン</label>
+                <select id="eval-zone" class="context-input" disabled onchange="loadMockAudioData()">
+                    <option value="">場所を選択してください</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="step-section">
+            <div class="step-title"><span class="badge">2</span> 音響データの選択</div>
+            <div id="audioDataContainer" class="audio-list">
+                <p style="color: #64748b; font-size: 13px;">対象ゾーンを選択すると解析済みデータが表示されます。</p>
+            </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="step-section">
+            <div class="step-title"><span class="badge">3</span> AIペルソナの選択</div>
+            <div id="personaListContainer" class="persona-grid">
+                <p style="color: #64748b; font-size: 13px;">ペルソナを読み込み中...</p>
+            </div>
+        </div>
+
+        <button class="btn-ai-run" onclick="runAIEvaluation()" id="btnRun">
+            <i data-lucide="cpu"></i> AI評価を実行する
+        </button>
+
+        <!-- Results -->
+        <div id="resultsSection" style="display: none; margin-top: 32px;">
+            <h3 style="color: white; margin-bottom: 16px;"><i data-lucide="check-circle-2" style="color: #10b981;"></i> 評価プレビュー</h3>
+            <div id="resultsContainer"></div>
+            
+            <button class="btn-submit" onclick="saveToDB()" style="margin-top: 24px;">
+                <i data-lucide="database"></i> この内容でDBに登録する
+            </button>
+        </div>
+    </div>
+
+    <!-- Loading -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <i data-lucide="loader-2" style="width: 48px; height: 48px; color: #8b5cf6; animation: spin 1s linear infinite; margin-bottom: 16px;"></i>
+        <h3 style="margin: 0; margin-bottom: 8px;">AIが分析中...</h3>
+        <p style="color: #94a3b8; font-size: 14px;">音響データとペルソナ属性を照合しています</p>
+    </div>
+    <style>@keyframes spin { 100% { transform: rotate(360deg); } }</style>
+
+    <script>
+        lucide.createIcons();
+
+        let nigiwaiPlaces = [];
+        let aiPersonas = [];
+        let generatedEvaluations = [];
+        let selectedAudioMock = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initPlaces();
+            initPersonas();
+        });
+
+        function initPlaces() {
+            const savedPlaces = localStorage.getItem('sys_places');
+            const locationSelect = document.getElementById('eval-location');
+            if (savedPlaces) {
+                nigiwaiPlaces = JSON.parse(savedPlaces);
+                locationSelect.innerHTML = '<option value="">選択してください</option>';
+                nigiwaiPlaces.forEach(place => {
+                    const option = document.createElement('option');
+                    option.value = place.id;
+                    option.textContent = place.name;
+                    locationSelect.appendChild(option);
+                });
+            }
+        }
+
+        function updateZoneOptions() {
+            const locationSelect = document.getElementById('eval-location');
+            const zoneSelect = document.getElementById('eval-zone');
+            const selectedLocation = locationSelect.value;
+            
+            zoneSelect.innerHTML = '<option value="">場所を選択してください</option>';
+            zoneSelect.disabled = true;
+            document.getElementById('audioDataContainer').innerHTML = '<p style="color: #64748b; font-size: 13px;">対象ゾーンを選択すると解析済みデータが表示されます。</p>';
+            
+            if (!selectedLocation) return;
+
+            const place = nigiwaiPlaces.find(p => p.id === selectedLocation);
+            if (place && place.zones && place.zones.length > 0) {
+                zoneSelect.disabled = false;
+                zoneSelect.innerHTML = '<option value="">選択してください</option>';
+                place.zones.forEach(zone => {
+                    const option = document.createElement('option');
+                    option.value = zone.id;
+                    option.textContent = zone.name;
+                    zoneSelect.appendChild(option);
+                });
+            }
+        }
+
+        function loadMockAudioData() {
+            const zoneId = document.getElementById('eval-zone').value;
+            const container = document.getElementById('audioDataContainer');
+            if(!zoneId) return;
+
+            // デモ用の解析済みモックデータ
+            const mockData = [
+                { id: 'audio_1', time: '12:00', db: 68, type: '活気あり (話し声多数)' },
+                { id: 'audio_2', time: '14:30', db: 52, type: '静か (足音のみ)' },
+                { id: 'audio_3', time: '18:00', db: 75, type: '騒がしい (BGMと歓声)' }
+            ];
+
+            let html = '';
+            mockData.forEach((data, idx) => {
+                html += \`
+                    <label class="audio-item">
+                        <input type="radio" name="audioSelect" value='\${JSON.stringify(data)}' \${idx===0 ? 'checked' : ''}>
+                        <div>
+                            <div style="color: white; font-weight: 500;">本日のデータ - \${data.time}</div>
+                            <div style="color: #94a3b8; font-size: 12px; margin-top: 4px;">音量レベル: \${data.db}dB / 特徴: \${data.type}</div>
+                        </div>
+                    </label>
+                \`;
+            });
+            container.innerHTML = html;
+        }
+
+        function initPersonas() {
+            const saved = localStorage.getItem('sys_personas');
+            const container = document.getElementById('personaListContainer');
+            if (saved) {
+                aiPersonas = JSON.parse(saved);
+                if(aiPersonas.length === 0) {
+                    container.innerHTML = '<p style="color: #ef4444; font-size: 13px;">ペルソナが登録されていません。システム設定から追加してください。</p>';
+                    return;
+                }
+                
+                let html = '';
+                aiPersonas.forEach((p, idx) => {
+                    html += \`
+                        <label class="persona-card">
+                            <input type="checkbox" name="personaSelect" value="\${p.id}" checked>
+                            <div>
+                                <div style="color: white; font-weight: 500;">\${p.name}</div>
+                                <div style="color: #94a3b8; font-size: 12px; margin-top: 4px;">属性: \${p.sensitivity==='high'?'音量高を好む':'静けさを好む'} / 重視: \${p.indicator}</div>
+                            </div>
+                        </label>
+                    \`;
+                });
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = '<p style="color: #ef4444; font-size: 13px;">ペルソナが登録されていません。システム設定から追加してください。</p>';
+            }
+        }
+
+        function runAIEvaluation() {
+            const placeId = document.getElementById('eval-location').value;
+            const zoneId = document.getElementById('eval-zone').value;
+            if(!placeId || !zoneId) {
+                alert('場所とゾーンを選択してください。');
+                return;
+            }
+
+            const audioRadio = document.querySelector('input[name="audioSelect"]:checked');
+            if(!audioRadio) {
+                alert('音響データを選択してください。');
+                return;
+            }
+            selectedAudioMock = JSON.parse(audioRadio.value);
+
+            const selectedPersonaIds = Array.from(document.querySelectorAll('input[name="personaSelect"]:checked')).map(cb => cb.value);
+            if(selectedPersonaIds.length === 0) {
+                alert('少なくとも1つのAIペルソナを選択してください。');
+                return;
+            }
+
+            // ローディング表示
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            document.getElementById('resultsSection').style.display = 'none';
+
+            setTimeout(() => {
+                generateEvaluations(selectedPersonaIds, selectedAudioMock, placeId, zoneId);
+                document.getElementById('loadingOverlay').style.display = 'none';
+                document.getElementById('resultsSection').style.display = 'block';
+                // 下までスクロール
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            }, 2000); // 2秒間のAI思考演出
+        }
+
+        // シミュレーターロジック
+        function generateEvaluations(personaIds, audio, placeId, zoneId) {
+            generatedEvaluations = [];
+            const container = document.getElementById('resultsContainer');
+            container.innerHTML = '';
+
+            personaIds.forEach(pId => {
+                const persona = aiPersonas.find(p => p.id === pId);
+                if(!persona) return;
+
+                // 評価ロジックの簡易シミュレーション
+                let score = 3; // base score
+                let comment = '';
+
+                // 音量と感受性の交差
+                if(audio.db > 60) {
+                    if(persona.sensitivity === 'high') { score += 1; comment += '賑やかな音環境で活気を感じました。'; }
+                    else { score -= 1; comment += '音量が大きく、落ち着かない環境でした。'; }
+                } else {
+                    if(persona.sensitivity === 'high') { score -= 1; comment += '少し静かすぎて物足りなさを感じました。'; }
+                    else { score += 1; comment += '静かでリラックスできる適度な音環境でした。'; }
+                }
+
+                // 指標とタイプによる微調整
+                if(persona.indicator === 'liveliness' && audio.type.includes('活気')) score += 1;
+                if(persona.indicator === 'quietness' && audio.type.includes('静か')) score += 1;
+
+                // スコア丸め
+                score = Math.max(1, Math.min(5, score));
+
+                // モックの10項目レーティング生成 (cause 10 + result 10)
+                const mockRatings = {};
+                for(let i=0; i<10; i++) {
+                    mockRatings[\`cause-\${i}\`] = Math.max(1, Math.min(5, score + Math.floor(Math.random() * 3) - 1));
+                    mockRatings[\`result-\${i}\`] = Math.max(1, Math.min(5, score + Math.floor(Math.random() * 3) - 1));
+                }
+
+                // 総合スコア (平均の近似)
+                let avgScore = score;
+
+                const evalData = {
+                    id: 'eval_ai_' + Date.now() + Math.floor(Math.random()*1000),
+                    timestamp: new Date().toISOString(), // 記録時刻
+                    audioTime: audio.time,
+                    placeId: placeId,
+                    zoneId: zoneId,
+                    source: \`AI (\${persona.name})\`,
+                    ratings: mockRatings,
+                    comment: comment + \`（\${persona.purpose || '目的設定なし'}の視点より）\`,
+                    avgScore: avgScore // プレビュー用
+                };
+                generatedEvaluations.push(evalData);
+
+                // UI生成
+                container.innerHTML += \`
+                    <div class="eval-result-card">
+                        <h4><i data-lucide="bot"></i> \${persona.name}</h4>
+                        <div class="eval-score">推計スコア: \${avgScore.toFixed(1)} / 5.0</div>
+                        <div class="eval-comment">"\${evalData.comment}"</div>
+                    </div>
+                \`;
+            });
+            lucide.createIcons();
+        }
+
+        function saveToDB() {
+            if(generatedEvaluations.length === 0) return;
+
+            const btn = document.querySelector('#resultsSection .btn-submit');
+            btn.innerHTML = '<i data-lucide="check-circle"></i> 登録完了！';
+            btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+
+            let dbEvals = [];
+            const stored = localStorage.getItem('sys_evaluations');
+            if(stored) {
+                dbEvals = JSON.parse(stored);
+            }
+
+            generatedEvaluations.forEach(ev => {
+                delete ev.avgScore; // 一時変数を消す
+                dbEvals.push(ev);
+            });
+
+            localStorage.setItem('sys_evaluations', JSON.stringify(dbEvals));
+
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 1000);
+        }
+    </script>
+</body>
+</html>

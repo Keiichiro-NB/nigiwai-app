@@ -1,0 +1,461 @@
+/* zone.css - ゾーン詳細画面専用スタイル */
+
+.zone-container {
+    display: flex;
+    gap: 24px;
+    height: calc(100vh - 160px);
+}
+
+/* 左カラム：地図と観測点 */
+.zone-left-col {
+    flex: 0 0 40%;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.observation-map {
+    position: relative;
+    width: 100%;
+    flex: 1;
+    background: radial-gradient(circle at center, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.8) 100%);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* ダミーのグリッド背景 */
+.observation-map::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 30px 30px;
+}
+
+.obs-point {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    z-index: 10;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.obs-point:hover {
+    transform: translate(-50%, -50%) scale(1.1);
+}
+
+.obs-dot {
+    width: 20px;
+    height: 20px;
+    background: var(--accent-color);
+    border: 3px solid rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.6);
+    position: relative;
+}
+
+.obs-point.active .obs-dot {
+    background: #f59e0b;
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.8);
+}
+
+/* 波紋アニメーション */
+.obs-dot::after {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%; right: -50%; bottom: -50%;
+    border: 2px solid var(--accent-color);
+    border-radius: 50%;
+    animation: ripple 2s infinite ease-out;
+    opacity: 0;
+}
+
+.obs-point.active .obs-dot::after {
+    border-color: #f59e0b;
+}
+
+@keyframes ripple {
+    0% { transform: scale(0.5); opacity: 1; }
+    100% { transform: scale(1.5); opacity: 0; }
+}
+
+.obs-label {
+    background: rgba(15, 23, 42, 0.9);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    white-space: nowrap;
+    backdrop-filter: blur(4px);
+}
+
+/* 右カラム：タブと詳細情報 */
+.zone-right-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.zone-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.tabs-container {
+    display: flex;
+    gap: 8px;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.zone-tab {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.zone-tab:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+
+.zone-tab.active {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--accent-color);
+}
+
+.tab-content {
+    padding: 24px;
+    flex: 1;
+    overflow-y: auto;
+    display: none;
+    animation: fadeIn 0.4s ease-out;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* 評価リストスタイル */
+.evaluator-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.evaluator-item {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s;
+}
+
+.evaluator-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+    transform: translateX(4px);
+}
+
+.eval-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.eval-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 16px;
+    color: white;
+}
+
+.eval-avatar.ai {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.eval-details h4 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.eval-details p {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.eval-score {
+    text-align: right;
+}
+
+.eval-score .score-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: #4ade80;
+}
+
+.eval-score .score-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* 音分析タブ用 */
+.audio-chart-container {
+    height: 300px;
+    position: relative;
+    margin-bottom: 24px;
+}
+
+.event-markers {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.event-marker {
+    display: flex;
+    gap: 16px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 12px 16px;
+    border-radius: 10px;
+    border-left: 4px solid var(--accent-color);
+}
+
+.event-marker.purple { border-left-color: #8b5cf6; }
+.event-marker.green { border-left-color: #10b981; }
+
+.event-time {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-primary);
+    min-width: 60px;
+}
+
+.event-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+/* -------------------------------------
+   追加: 環境データサマリ用スタイル 
+------------------------------------- */
+.metric-box {
+    background: rgba(0, 0, 0, 0.25);
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: transform 0.2s, background 0.2s;
+}
+
+.metric-box:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.metric-label {
+    color: var(--text-secondary);
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
+}
+
+.metric-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+.metric-value span {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-secondary);
+    margin-left: 2px;
+}
+
+.metric-trend {
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+    font-weight: 500;
+}
+
+.metric-trend.up { color: #ef4444; } /* 赤色（上昇・増加など状況に応じて） */
+.metric-trend.down { color: #10b981; } /* 緑色（減少・改善など） */
+.metric-trend.neutral { color: var(--text-secondary); }
+
+.metric-trend i {
+    width: 14px;
+    height: 14px;
+}
+
+/* -------------------------------------
+   追加: カメラグリッド用スタイル 
+------------------------------------- */
+.camera-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.camera-controls .btn-secondary {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.camera-controls .btn-secondary:hover,
+.camera-controls .btn-secondary.active {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.5);
+    color: var(--accent-color);
+}
+
+.camera-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.camera-card {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.camera-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.camera-img-placeholder {
+    height: 160px;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+}
+
+.camera-img-placeholder::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.8) 100%);
+}
+
+.camera-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    z-index: 2;
+    letter-spacing: 0.5px;
+}
+
+.camera-badge.live {
+    background: rgba(239, 68, 68, 0.9);
+    color: white;
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+}
+
+.camera-badge.live::before {
+    content: '';
+    display: block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #fff;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.2); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+.camera-timestamp {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.9);
+    z-index: 2;
+    font-family: monospace;
+    font-weight: 500;
+}
+
+.camera-info {
+    padding: 16px;
+}
+
+.camera-info h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--text-primary);
+}
+
+.camera-info p {
+    font-size: 12px;
+    color: var(--text-secondary);
+}

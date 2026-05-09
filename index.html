@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nigiwai App - ダッシュボード</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="dashboard.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script src="data-store.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i data-lucide="activity"></i>
+                <span>Nigiwai</span>
+            </div>
+            <nav>
+                <a href="index.html" class="active"><i data-lucide="layout-dashboard"></i> ダッシュボード</a>
+                <a href="place.html"><i data-lucide="map"></i> 対象地</a>
+                <a href="session.html"><i data-lucide="calendar"></i> セッション</a>
+                <a href="zone.html"><i data-lucide="crosshair"></i> ゾーン詳細</a>
+                <a href="evaluator.html"><i data-lucide="users"></i> 評価者詳細</a>
+                <a href="input.html"><i data-lucide="edit-3"></i> 現場入力 (UI)</a>
+                <a href="ai_eval.html"><i data-lucide="bot"></i> AIペルソナ評価</a>
+                <a href="audio.html"><i data-lucide="mic"></i> 音声解析連携</a>
+                <a href="report.html"><i data-lucide="bar-chart-2"></i> 分析レポート</a>
+                <a href="settings.html" class="admin-only"><i data-lucide="settings"></i> システム設定</a>
+            </nav>
+            <div class="sidebar-footer" style="padding: 20px; border-top: 1px solid var(--border-color); margin-top: auto;">
+                <span style="font-size: 11px; color: var(--text-secondary); margin-bottom: 8px; display: block; text-transform: uppercase; letter-spacing: 0.05em;">権限モード</span>
+                <div class="mode-toggle" id="globalModeToggle" data-mode="admin">
+                    <div class="toggle-slider"></div>
+                    <div class="toggle-option active" data-val="admin">管理者</div>
+                    <div class="toggle-option" data-val="user">調査員</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header>
+                <div class="header-title">
+                    <h1>簡易ダッシュボード</h1>
+                    <p>対象地ごとの調査状況・進捗の確認</p>
+                </div>
+                
+                <div class="data-controls" style="display: flex; gap: 16px; align-items: center;">
+                    <div class="filter-control" style="background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 8px; display: flex; align-items: center; gap: 8px;">
+                        <label for="indicatorFilter" style="font-size: 13px; color: var(--text-secondary);">データ表示:</label>
+                        <select id="indicatorFilter" style="background: transparent; color: white; border: 1px solid var(--border-color); padding: 4px; border-radius: 4px; outline: none;">
+                            <option value="latest" style="color: black;">最新指標のみ表示</option>
+                            <option value="all" style="color: black;">過去データも含む</option>
+                        </select>
+                    </div>
+                    
+                    <label for="excelUpload" class="btn-primary" style="cursor: pointer; margin: 0;">
+                        <i data-lucide="upload"></i> Excel読み込み
+                    </label>
+                    <input type="file" id="excelUpload" accept=".xlsx, .xls" style="display: none;">
+                    
+                    <div class="user-profile" style="margin-left: 12px;">
+                        <img src="https://ui-avatars.com/api/?name=Admin&background=0D8ABC&color=fff" alt="User Profile">
+                    </div>
+                </div>
+            </header>
+
+            <!-- Summary Cards -->
+            <section class="summary-cards">
+                <div class="card glass">
+                    <div class="card-icon"><i data-lucide="map-pin"></i></div>
+                    <div class="card-info">
+                        <h3>登録対象地</h3>
+                        <p class="number" id="dash-place-count">0</p>
+                    </div>
+                </div>
+                <div class="card glass">
+                    <div class="card-icon"><i data-lucide="check-circle" style="color: #10b981;"></i></div>
+                    <div class="card-info">
+                        <h3>人間による評価</h3>
+                        <p class="number" id="dash-human-eval">0</p>
+                    </div>
+                </div>
+                <div class="card glass">
+                    <div class="card-icon"><i data-lucide="bot" style="color: #8b5cf6;"></i></div>
+                    <div class="card-info">
+                        <h3>AIペルソナ評価</h3>
+                        <p class="number" id="dash-ai-eval">0</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Target Places List -->
+            <section class="target-places">
+                <div class="section-header">
+                    <h2>対象地一覧</h2>
+                    <button class="btn-primary"><i data-lucide="plus"></i> 新規登録</button>
+                </div>
+                
+                <div class="place-cards">
+                    <!-- 対象地カード：メブクス豊洲 -->
+                    <div class="place-card glass hover-effect">
+                        <div class="place-header">
+                            <div>
+                                <span class="badge">マルシェ</span>
+                                <h3>メブクス豊洲</h3>
+                            </div>
+                            <div class="status">
+                                <span class="status-dot active"></span> 稼働中
+                            </div>
+                        </div>
+                        <div class="place-stats">
+                            <div class="stat">
+                                <span class="label">ゾーン数</span>
+                                <span class="value">4</span>
+                            </div>
+                            <div class="stat">
+                                <span class="label">評価者数</span>
+                                <span class="value">124</span>
+                            </div>
+                            <div class="stat">
+                                <span class="label">最新セッション</span>
+                                <span class="value">2026/04/18</span>
+                            </div>
+                        </div>
+                        <div class="place-progress">
+                            <div class="progress-info">
+                                <span>調査進捗</span>
+                                <span>75%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 75%"></div>
+                            </div>
+                        </div>
+                        <div class="place-actions">
+                            <a href="place.html" class="btn-secondary" style="text-decoration: none; text-align: center; display: inline-block;">詳細を見る</a>
+                            <button class="btn-icon"><i data-lucide="external-link"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Charts Section -->
+            <section class="charts-section">
+                <div class="chart-container glass">
+                    <h3>全体の評価推移 (AI評価平均)</h3>
+                    <div style="position: relative; height: 240px; width: 100%;">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+            </section>
+            
+        </main>
+    </div>
+    <script src="dashboard.js"></script>
+    <script src="auth.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const places = JSON.parse(localStorage.getItem('sys_places') || '[]');
+            const elPlaceCount = document.getElementById('dash-place-count');
+            if(elPlaceCount) elPlaceCount.textContent = places.length;
+
+            const evals = JSON.parse(localStorage.getItem('sys_evaluations') || '[]');
+            const humanEvals = evals.filter(e => e.source === 'Human');
+            const aiEvals = evals.filter(e => e.source && e.source.startsWith('AI'));
+
+            const elHumanEval = document.getElementById('dash-human-eval');
+            if(elHumanEval) elHumanEval.textContent = humanEvals.length;
+            
+            const elAiEval = document.getElementById('dash-ai-eval');
+            if(elAiEval) elAiEval.textContent = aiEvals.length;
+        });
+    </script>
+</body>
+</html>
+

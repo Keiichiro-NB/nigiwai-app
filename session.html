@@ -1,0 +1,184 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>セッション概要 | Nigiwai App</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="session.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i data-lucide="activity"></i>
+                <span>Nigiwai</span>
+            </div>
+            <nav>
+                <a href="index.html"><i data-lucide="layout-dashboard"></i> ダッシュボード</a>
+                <a href="place.html"><i data-lucide="map"></i> 対象地</a>
+                <a href="session.html" class="active"><i data-lucide="calendar"></i> セッション</a>
+                <a href="zone.html"><i data-lucide="crosshair"></i> ゾーン詳細</a>
+                <a href="evaluator.html"><i data-lucide="users"></i> 評価者詳細</a>
+                <a href="input.html"><i data-lucide="edit-3"></i> 現場入力 (UI)</a>
+                <a href="audio.html"><i data-lucide="mic"></i> 音声解析連携</a>
+                <a href="report.html"><i data-lucide="bar-chart-2"></i> 分析レポート</a>
+                <a href="settings.html" class="admin-only"><i data-lucide="settings"></i> システム設定</a>
+            </nav>
+            <div class="sidebar-footer" style="padding: 20px; border-top: 1px solid var(--border-color); margin-top: auto;">
+                <span style="font-size: 11px; color: var(--text-secondary); margin-bottom: 8px; display: block; text-transform: uppercase; letter-spacing: 0.05em;">権限モード</span>
+                <div class="mode-toggle" id="globalModeToggle" data-mode="admin">
+                    <div class="toggle-slider"></div>
+                    <div class="toggle-option active" data-val="admin">管理者</div>
+                    <div class="toggle-option" data-val="user">調査員</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header>
+                <div class="header-title">
+                    <div class="breadcrumb">
+                        <a href="place.html">メブクス豊洲</a> <i data-lucide="chevron-right"></i> <span>セッション一覧</span>
+                    </div>
+                    <div class="title-with-badge">
+                        <h1>2026/04/18 午前調査</h1>
+                        <span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #93c5fd;">完了</span>
+                    </div>
+                </div>
+                <div class="user-profile">
+                    <img src="https://ui-avatars.com/api/?name=Admin&background=0D8ABC&color=fff" alt="User Profile">
+                </div>
+            </header>
+
+            <div class="session-grid">
+                <!-- セッション概要カード -->
+                <div class="glass card-panel overview-panel">
+                    <div class="panel-header">
+                        <h3>セッション概要</h3>
+                        <button class="btn-secondary btn-sm"><i data-lucide="download"></i> PDF出力</button>
+                    </div>
+                    <div class="overview-stats">
+                        <div class="stat-box">
+                            <span class="label">担当者</span>
+                            <span class="value">山田 太郎</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="label">天候</span>
+                            <span class="value"><i data-lucide="sun" style="width: 16px; color: #fbbf24;"></i> 晴れ (22℃)</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="label">参加評価者数</span>
+                            <span class="value">12名</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="label">総合スコア (AI)</span>
+                            <span class="value text-green">4.2</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ゾーン比較サマリ -->
+                <div class="glass card-panel comparison-panel">
+                    <div class="panel-header">
+                        <h3>ゾーン比較サマリ</h3>
+                        <div class="tabs">
+                            <button class="tab active">一覧比較</button>
+                            <button class="tab">詳細データ</button>
+                        </div>
+                    </div>
+                    
+                    <div class="table-container">
+                        <table class="styled-table">
+                            <thead>
+                                <tr>
+                                    <th>ゾーン名</th>
+                                    <th>人評価 平均</th>
+                                    <th>AI評価 平均</th>
+                                    <th>音量ピーク</th>
+                                    <th>主なコメント (抽出)</th>
+                                    <th>アクション</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="zone-badge">ゾーンA: 入口前</span></td>
+                                    <td>4.0</td>
+                                    <td>4.2</td>
+                                    <td>75dB (10:15)</td>
+                                    <td>「活気がある」「少し混雑」</td>
+                                    <td><button class="btn-icon-small"><i data-lucide="chevron-right"></i></button></td>
+                                </tr>
+                                <tr>
+                                    <td><span class="zone-badge">ゾーンB: 飲食エリア</span></td>
+                                    <td>4.6</td>
+                                    <td>4.5</td>
+                                    <td>82dB (12:30)</td>
+                                    <td>「食事が美味しい」「席が足りない」</td>
+                                    <td><button class="btn-icon-small"><i data-lucide="chevron-right"></i></button></td>
+                                </tr>
+                                <tr>
+                                    <td><span class="zone-badge">ゾーンC: 通路沿い</span></td>
+                                    <td>3.5</td>
+                                    <td>3.8</td>
+                                    <td>65dB (11:00)</td>
+                                    <td>「歩きやすい」「少し寂しい」</td>
+                                    <td><button class="btn-icon-small"><i data-lucide="chevron-right"></i></button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 400名擬似データ集計セクション -->
+                <div class="glass card-panel aggregate-panel">
+                    <div class="panel-header">
+                        <h3>400名集計セクション (疑似データ)</h3>
+                        <p class="subtitle">※ ペルソナ属性に基づく母数配分と利用目的の分布</p>
+                    </div>
+                    
+                    <div class="aggregate-grid">
+                        <div class="aggregate-box">
+                            <h4>属性分布</h4>
+                            <div class="progress-list">
+                                <div class="progress-item">
+                                    <div class="prog-label"><span>ファミリー</span><span>45%</span></div>
+                                    <div class="prog-bar"><div class="prog-fill" style="width: 45%; background: #3b82f6;"></div></div>
+                                </div>
+                                <div class="progress-item">
+                                    <div class="prog-label"><span>カップル</span><span>25%</span></div>
+                                    <div class="prog-bar"><div class="prog-fill" style="width: 25%; background: #8b5cf6;"></div></div>
+                                </div>
+                                <div class="progress-item">
+                                    <div class="prog-label"><span>一人客</span><span>20%</span></div>
+                                    <div class="prog-bar"><div class="prog-fill" style="width: 20%; background: #10b981;"></div></div>
+                                </div>
+                                <div class="progress-item">
+                                    <div class="prog-label"><span>その他</span><span>10%</span></div>
+                                    <div class="prog-bar"><div class="prog-fill" style="width: 10%; background: #64748b;"></div></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="aggregate-box">
+                            <h4>全体満足度スコア分布</h4>
+                            <div class="score-distribution">
+                                <div class="dist-bar" style="height: 10%;"><span>★1</span></div>
+                                <div class="dist-bar" style="height: 15%;"><span>★2</span></div>
+                                <div class="dist-bar" style="height: 30%;"><span>★3</span></div>
+                                <div class="dist-bar" style="height: 60%; background: var(--accent-color);"><span>★4</span></div>
+                                <div class="dist-bar" style="height: 40%; background: #8b5cf6;"><span>★5</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script>lucide.createIcons();</script>
+    <script src="auth.js"></script>`n</body>
+</html>
+

@@ -1,0 +1,190 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音分析レポート | Nigiwai App</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="report.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i data-lucide="activity"></i>
+                <span>Nigiwai</span>
+            </div>
+            <nav>
+                <a href="index.html"><i data-lucide="layout-dashboard"></i> ダッシュボード</a>
+                <a href="place.html"><i data-lucide="map"></i> 対象地</a>
+                <a href="session.html"><i data-lucide="calendar"></i> セッション</a>
+                <a href="zone.html"><i data-lucide="crosshair"></i> ゾーン詳細</a>
+                <a href="evaluator.html"><i data-lucide="users"></i> 評価者詳細</a>
+                <a href="input.html"><i data-lucide="edit-3"></i> 現場入力 (UI)</a>
+                <a href="audio.html"><i data-lucide="mic"></i> 音声解析連携</a>
+                <a href="report.html" class="active"><i data-lucide="bar-chart-2"></i> 分析レポート</a>
+                <a href="settings.html" class="admin-only"><i data-lucide="settings"></i> システム設定</a>
+            </nav>
+            <div class="sidebar-footer" style="padding: 20px; border-top: 1px solid var(--border-color); margin-top: auto;">
+                <span style="font-size: 11px; color: var(--text-secondary); margin-bottom: 8px; display: block; text-transform: uppercase; letter-spacing: 0.05em;">権限モード</span>
+                <div class="mode-toggle" id="globalModeToggle" data-mode="admin">
+                    <div class="toggle-slider"></div>
+                    <div class="toggle-option active" data-val="admin">管理者</div>
+                    <div class="toggle-option" data-val="user">調査員</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header>
+                <div class="header-title">
+                    <div class="breadcrumb">
+                        <a href="session.html">2026/04/18 午前調査</a> <i data-lucide="chevron-right"></i> <span>音分析</span>
+                    </div>
+                    <div class="title-with-badge">
+                        <h1>音分析レポート (Auphonic連携)</h1>
+                        <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #6ee7b7;">分析完了</span>
+                    </div>
+                </div>
+                <div class="user-profile">
+                    <img src="https://ui-avatars.com/api/?name=Admin&background=0D8ABC&color=fff" alt="User Profile">
+                </div>
+            </header>
+
+            <!-- メインチャート：音量の時間推移 -->
+            <div class="glass card-panel chart-panel">
+                <div class="panel-header">
+                    <h3>音量の時間推移 (1分粒度)</h3>
+                    <div class="tabs">
+                        <button class="tab active">全ゾーン</button>
+                        <button class="tab">ゾーンA</button>
+                        <button class="tab">ゾーンB</button>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="volumeChart"></canvas>
+                </div>
+            </div>
+
+            <div class="report-grid">
+                <!-- 時間帯別の要素比較 -->
+                <div class="glass card-panel">
+                    <div class="panel-header">
+                        <h3>時間帯別の要素比較</h3>
+                    </div>
+                    <div class="bar-chart-wrapper">
+                        <canvas id="timeBarChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 自動抽出イベント (拡張枠) -->
+                <div class="glass card-panel">
+                    <div class="panel-header">
+                        <h3>自動抽出イベント (拡張枠)</h3>
+                    </div>
+                    <ul class="event-list">
+                        <li>
+                            <div class="event-icon bg-blue"><i data-lucide="volume-2"></i></div>
+                            <div class="event-content">
+                                <strong>10:15 - 音量急上昇 (ゾーンA)</strong>
+                                <span>マルシェ開始直後の入場者増加による全体音量の上昇を検知。</span>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="event-icon bg-purple"><i data-lucide="mic"></i></div>
+                            <div class="event-content">
+                                <strong>12:30 - 発話増加 (ゾーンB)</strong>
+                                <span>飲食エリアでの滞在者増加。会話量の多さがKNFスコアにポジティブな影響。</span>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="event-icon bg-gray"><i data-lucide="volume-x"></i></div>
+                            <div class="event-content">
+                                <strong>11:00 - 一時的な無音化 (ゾーンC)</strong>
+                                <span>通路沿いでの人流途絶を検知。回遊性に課題がある可能性。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- グラフ描画用スクリプト -->
+    <script>
+        lucide.createIcons();
+
+        document.addEventListener('DOMContentLoaded', () => {
+            Chart.defaults.color = '#94a3b8';
+            Chart.defaults.font.family = "'Outfit', -apple-system, sans-serif";
+
+            // 折れ線グラフ (音量推移)
+            const volCtx = document.getElementById('volumeChart').getContext('2d');
+            new Chart(volCtx, {
+                type: 'line',
+                data: {
+                    labels: ['10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00'],
+                    datasets: [{
+                        label: 'ゾーンB (飲食エリア) dB',
+                        data: [60, 65, 70, 75, 80, 85, 78],
+                        borderColor: '#8b5cf6',
+                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#8b5cf6',
+                        fill: true,
+                        tension: 0.4
+                    }, {
+                        label: 'ゾーンA (入口前) dB',
+                        data: [55, 75, 65, 60, 65, 70, 65],
+                        borderColor: '#3b82f6',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#3b82f6',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { color: '#f8fafc' } }
+                    },
+                    scales: {
+                        y: { min: 40, max: 100, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            // 棒グラフ (時間帯別要素)
+            const barCtx = document.getElementById('timeBarChart').getContext('2d');
+            new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['10時台', '11時台', '12時台'],
+                    datasets: [{
+                        label: '平均音量 (dB)',
+                        data: [62, 68, 75],
+                        backgroundColor: '#3b82f6',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { min: 0, max: 90, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        });
+    </script>
+    <script src="auth.js"></script>`n</body>
+</html>
+

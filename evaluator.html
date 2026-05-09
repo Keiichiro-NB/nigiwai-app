@@ -1,0 +1,249 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>評価者詳細 - 調査員 A | Nigiwai App</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="evaluator.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i data-lucide="activity"></i>
+                <span>Nigiwai</span>
+            </div>
+            <nav>
+                <a href="index.html"><i data-lucide="layout-dashboard"></i> ダッシュボード</a>
+                <a href="place.html"><i data-lucide="map"></i> 対象地</a>
+                <a href="session.html"><i data-lucide="calendar"></i> セッション</a>
+                <a href="zone.html"><i data-lucide="crosshair"></i> ゾーン詳細</a>
+                <a href="evaluator.html" class="active"><i data-lucide="users"></i> 評価者詳細</a>
+                <a href="input.html"><i data-lucide="edit-3"></i> 現場入力 (UI)</a>
+                <a href="audio.html"><i data-lucide="mic"></i> 音声解析連携</a>
+                <a href="report.html"><i data-lucide="bar-chart-2"></i> 分析レポート</a>
+                <a href="settings.html" class="admin-only"><i data-lucide="settings"></i> システム設定</a>
+            </nav>
+            <div class="sidebar-footer" style="padding: 20px; border-top: 1px solid var(--border-color); margin-top: auto;">
+                <span style="font-size: 11px; color: var(--text-secondary); margin-bottom: 8px; display: block; text-transform: uppercase; letter-spacing: 0.05em;">権限モード</span>
+                <div class="mode-toggle" id="globalModeToggle" data-mode="admin">
+                    <div class="toggle-slider"></div>
+                    <div class="toggle-option active" data-val="admin">管理者</div>
+                    <div class="toggle-option" data-val="user">調査員</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header>
+                <div class="header-title">
+                    <div class="breadcrumb">
+                        <a href="zone.html">ゾーンB</a> <i data-lucide="chevron-right"></i> <span>評価詳細</span>
+                    </div>
+                    <div class="title-with-badge">
+                        <h1>評価データ詳細比較</h1>
+                    </div>
+                </div>
+                <div class="user-profile">
+                    <img src="https://ui-avatars.com/api/?name=Admin&background=0D8ABC&color=fff" alt="User Profile">
+                </div>
+            </header>
+
+            <div class="comparison-container">
+                
+                <!-- 人の評価カラム -->
+                <div class="eval-col human-col">
+                    <div class="col-header">
+                        <div class="eval-avatar"><i data-lucide="user"></i></div>
+                        <div>
+                            <h2>調査員 A (人評価)</h2>
+                            <span class="timestamp">2026/04/18 12:45 | ゾーンB</span>
+                        </div>
+                    </div>
+                    
+                    <div class="glass eval-card">
+                        <div class="total-score">
+                            <span class="label">総合スコア</span>
+                            <span class="score text-blue">4.8</span>
+                        </div>
+                        
+                        <div class="indicator-list">
+                            <div class="indicator-item">
+                                <div class="ind-head">
+                                    <span class="ind-name"><i data-lucide="maximize" style="width:14px;"></i> 開放性</span>
+                                    <span class="ind-val">5.0</span>
+                                </div>
+                                <div class="ind-bar-bg"><div class="ind-bar-fill" style="width: 100%;"></div></div>
+                            </div>
+                            <div class="indicator-item">
+                                <div class="ind-head">
+                                    <span class="ind-name"><i data-lucide="users" style="width:14px;"></i> 人の滞在</span>
+                                    <span class="ind-val">4.5</span>
+                                </div>
+                                <div class="ind-bar-bg"><div class="ind-bar-fill" style="width: 90%;"></div></div>
+                            </div>
+                            <div class="indicator-item">
+                                <div class="ind-head">
+                                    <span class="ind-name"><i data-lucide="coffee" style="width:14px;"></i> たまり築</span>
+                                    <span class="ind-val">4.0</span>
+                                </div>
+                                <div class="ind-bar-bg"><div class="ind-bar-fill" style="width: 80%;"></div></div>
+                            </div>
+                        </div>
+
+                        <!-- 調査員エビデンス画像 -->
+                        <div class="evidence-section mt-4">
+                            <h4><i data-lucide="camera"></i> 現場スナップショット</h4>
+                            <div class="evidence-image">
+                                <img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=400" alt="現場写真" style="width: 100%; border-radius: 8px; margin-top: 8px;">
+                            </div>
+                        </div>
+                        
+                        <div class="comment-box mt-4">
+                            <h4><i data-lucide="message-square"></i> コメント</h4>
+                            <p>「ランチタイムで座席がほぼ満席。活気があり、非常に良い雰囲気だが少し通路が狭く感じる。」</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AIの評価カラム -->
+                <div class="eval-col ai-col">
+                    <div class="col-header">
+                        <div class="eval-avatar ai"><i data-lucide="cpu"></i></div>
+                        <div>
+                            <h2>AI解析モデル (近似時間)</h2>
+                            <span class="timestamp">2026/04/18 12:30 | カメラ2解析</span>
+                        </div>
+                    </div>
+                    
+                    <div class="glass eval-card">
+                        <div class="total-score">
+                            <span class="label">総合スコア</span>
+                            <span class="score text-green">4.5</span>
+                        </div>
+                        
+                        <div class="indicator-list">
+                            <div class="indicator-item">
+                                <div class="ind-head">
+                                    <span class="ind-name"><i data-lucide="maximize" style="width:14px;"></i> 開放性</span>
+                                    <span class="ind-val">4.2</span>
+                                </div>
+                                <div class="ind-bar-bg"><div class="ind-bar-fill ai-fill" style="width: 84%;"></div></div>
+                            </div>
+                            <div class="indicator-item">
+                                <div class="ind-head">
+                                    <span class="ind-name"><i data-lucide="users" style="width:14px;"></i> 人の滞在</span>
+                                    <span class="ind-val">4.8</span>
+                                </div>
+                                <div class="ind-bar-bg"><div class="ind-bar-fill ai-fill" style="width: 96%;"></div></div>
+                            </div>
+                            <div class="indicator-item">
+                                <div class="ind-head">
+                                    <span class="ind-name"><i data-lucide="coffee" style="width:14px;"></i> たまり築</span>
+                                    <span class="ind-val">4.5</span>
+                                </div>
+                                <div class="ind-bar-bg"><div class="ind-bar-fill ai-fill" style="width: 90%;"></div></div>
+                            </div>
+                        </div>
+
+                        <!-- AIエビデンス画像 (バウンディングボックス) -->
+                        <div class="evidence-section mt-4">
+                            <h4><i data-lucide="scan"></i> AI物体検出 / 音声解析</h4>
+                            <div class="evidence-image bounding-box-container" style="position: relative; margin-top: 8px;">
+                                <img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=400" alt="AI解析結果" style="width: 100%; border-radius: 8px;">
+                                <!-- CSSバウンディングボックス -->
+                                <div class="bbox" style="top: 30%; left: 20%; width: 25%; height: 40%; border: 2px solid #10b981; position: absolute;"></div>
+                                <div class="bbox" style="top: 40%; left: 60%; width: 15%; height: 30%; border: 2px solid #10b981; position: absolute;"></div>
+                            </div>
+                            <!-- 音声波形モック -->
+                            <div class="audio-waveform mt-2" style="height: 30px; display: flex; align-items: center; gap: 2px; justify-content: center; background: rgba(0,0,0,0.2); border-radius: 4px; overflow: hidden;">
+                                <div class="wave-bar" style="height: 40%; width: 4px; background: #8b5cf6;"></div>
+                                <div class="wave-bar" style="height: 70%; width: 4px; background: #8b5cf6;"></div>
+                                <div class="wave-bar" style="height: 100%; width: 4px; background: #8b5cf6;"></div>
+                                <div class="wave-bar" style="height: 50%; width: 4px; background: #8b5cf6;"></div>
+                                <div class="wave-bar" style="height: 80%; width: 4px; background: #8b5cf6;"></div>
+                            </div>
+                        </div>
+
+                        <div class="comment-box mt-4">
+                            <h4><i data-lucide="terminal"></i> 解析ログ</h4>
+                            <p><code>[12:30:45] Detect: Persons=42, Standing=15, Sitting=27. Dense cluster at center table. Audio level: 82dB (Conversational peak).</code></p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- 偏差分析（レーダーチャート） -->
+            <div class="glass card-panel mt-4" style="max-width: 800px; margin: 0 auto;">
+                <div class="panel-header">
+                    <h3>評価ギャップ分析</h3>
+                </div>
+                <div style="height: 300px; position: relative;">
+                    <canvas id="gapRadarChart"></canvas>
+                </div>
+                <div class="mt-4 text-center text-sm" style="color: var(--text-secondary);">
+                    ※ AIは「人の滞在」をやや高く評価し、「開放性」を低く見積もる傾向があります。カメラの画角による死角が影響している可能性があります。
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        lucide.createIcons();
+
+        document.addEventListener('DOMContentLoaded', () => {
+            Chart.defaults.color = '#94a3b8';
+            Chart.defaults.font.family = "'Outfit', -apple-system, sans-serif";
+
+            const ctxR = document.getElementById('gapRadarChart').getContext('2d');
+            new Chart(ctxR, {
+                type: 'radar',
+                data: {
+                    labels: ['街路性', '開放性', 'たまり築', '人の滞在', '人の回遊'],
+                    datasets: [
+                        {
+                            label: '調査員 A',
+                            data: [4.0, 5.0, 4.0, 4.5, 3.8],
+                            backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                            borderColor: '#3b82f6',
+                            borderWidth: 2,
+                            pointBackgroundColor: '#3b82f6'
+                        },
+                        {
+                            label: 'AI解析',
+                            data: [3.8, 4.2, 4.5, 4.8, 4.0],
+                            backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                            borderColor: '#10b981',
+                            borderWidth: 2,
+                            pointBackgroundColor: '#10b981'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { position: 'bottom', labels: { color: '#e2e8f0', padding: 20 } }
+                    },
+                    scales: {
+                        r: {
+                            min: 0, max: 5, ticks: { stepSize: 1, display: false },
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            angleLines: { color: 'rgba(255,255,255,0.1)' },
+                            pointLabels: { color: '#e2e8f0', font: { size: 13 } }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+    <script src="auth.js"></script>`n</body>
+</html>
+

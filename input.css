@@ -1,0 +1,409 @@
+/* input.css - 評価入力画面用スタイル */
+:root {
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --accent-color: #3b82f6;
+    --accent-hover: #2563eb;
+    --success: #10b981;
+}
+
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'Outfit', -apple-system, sans-serif;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.input-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(15, 23, 42, 0.9);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.input-title {
+    font-size: 18px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.close-btn {
+    color: var(--text-secondary);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    transition: background 0.2s;
+}
+
+.close-btn:active {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* タブナビゲーション */
+.tabs-nav {
+    display: flex;
+    padding: 16px 20px 0;
+    gap: 12px;
+    overflow-x: auto;
+    scrollbar-width: none; /* Firefox */
+}
+.tabs-nav::-webkit-scrollbar { display: none; /* Chrome, Safari */ }
+
+.tab-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+    padding: 14px 20px;
+    border-radius: 12px 12px 0 0;
+    font-size: 15px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-bottom: none;
+}
+
+.tab-btn.active {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--accent-color);
+    border-color: rgba(59, 130, 246, 0.3);
+    position: relative;
+}
+
+.tab-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 0; right: 0;
+    height: 3px;
+    background: var(--accent-color);
+    border-radius: 3px 3px 0 0;
+}
+
+/* コンテンツエリア */
+.tab-content {
+    display: none;
+    padding: 20px;
+    animation: fadeIn 0.3s ease;
+}
+.tab-content.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* 評価項目カード */
+.indicator-card {
+    background: var(--bg-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.indicator-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.indicator-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* 5段階評価UI (押しやすい円形ボタン) */
+.rating-scale {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.rating-btn {
+    flex: 1;
+    aspect-ratio: 1;
+    max-height: 55px;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+    font-size: 20px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.rating-btn:active {
+    transform: scale(0.9);
+}
+
+/* 選択時の色分け (1=低評価(赤), 5=高評価(青緑)) */
+.rating-btn.selected[data-val="1"] { background: rgba(239, 68, 68, 0.2); border-color: #ef4444; color: #ef4444; transform: scale(1.1); box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
+.rating-btn.selected[data-val="2"] { background: rgba(249, 115, 22, 0.2); border-color: #f97316; color: #f97316; transform: scale(1.1); box-shadow: 0 0 15px rgba(249, 115, 22, 0.4); }
+.rating-btn.selected[data-val="3"] { background: rgba(234, 179, 8, 0.2); border-color: #eab308; color: #eab308; transform: scale(1.1); box-shadow: 0 0 15px rgba(234, 179, 8, 0.4); }
+.rating-btn.selected[data-val="4"] { background: rgba(16, 185, 129, 0.2); border-color: #10b981; color: #10b981; transform: scale(1.1); box-shadow: 0 0 15px rgba(16, 185, 129, 0.4); }
+.rating-btn.selected[data-val="5"] { background: rgba(59, 130, 246, 0.2); border-color: #3b82f6; color: #3b82f6; transform: scale(1.1); box-shadow: 0 0 15px rgba(59, 130, 246, 0.4); }
+
+.rating-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+    padding: 0 4px;
+}
+
+/* コメント入力 */
+.comment-input {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 14px;
+    resize: vertical;
+    min-height: 44px;
+    font-family: inherit;
+    box-sizing: border-box;
+    transition: all 0.2s;
+}
+
+.comment-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    background: rgba(0, 0, 0, 0.4);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.comment-input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+/* 全体コメントセクション */
+.general-comment-section {
+    padding: 20px;
+    margin-bottom: 120px; /* ボタン領域の確保 */
+}
+
+.general-comment-section h3 {
+    font-size: 16px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* 送信ボタンエリア (固定フローティング) */
+.submit-area {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, rgba(15, 23, 42, 1) 50%, rgba(15, 23, 42, 0));
+    padding: 40px 20px 24px;
+    z-index: 100;
+}
+
+.btn-submit {
+    width: 100%;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    border: none;
+    padding: 18px;
+    border-radius: 14px;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: transform 0.2s, background 0.3s;
+}
+
+.btn-submit:active {
+    transform: scale(0.96);
+}
+
+/* 調査コンテキスト設定 (アコーディオン) */
+.context-accordion {
+    background: var(--bg-secondary);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 0;
+}
+
+.context-accordion summary {
+    padding: 16px 20px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    user-select: none;
+}
+
+.context-accordion summary::-webkit-details-marker {
+    display: none;
+}
+
+.context-accordion summary::after {
+    content: '';
+    width: 10px;
+    height: 10px;
+    border-right: 2px solid var(--text-secondary);
+    border-bottom: 2px solid var(--text-secondary);
+    transform: rotate(45deg);
+    transition: transform 0.3s;
+}
+
+.context-accordion[open] summary::after {
+    transform: rotate(225deg);
+    margin-top: 5px;
+}
+
+.context-accordion summary i {
+    color: var(--accent-color);
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+.context-form {
+    padding: 0 20px 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    animation: fadeIn 0.3s ease;
+}
+
+.context-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.context-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.context-group label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.context-input {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: var(--text-primary);
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 15px;
+    font-family: inherit;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.context-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+}
+
+/* 一時保存等のデュアルボタン用 */
+.submit-area {
+    display: flex;
+    gap: 12px;
+}
+
+.btn-draft {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 18px;
+    border-radius: 14px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.btn-draft:active {
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(0.96);
+}
+
+.btn-submit {
+    flex: 2;
+}
+
+/* トースト通知 */
+.toast-mobile {
+    position: fixed;
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-20px);
+    background: rgba(16, 185, 129, 0.9);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    z-index: 200;
+}
+
+.toast-mobile.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+}
+
+.input-header .back-link {
+    color: var(--text-secondary);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    font-weight: 500;
+}
