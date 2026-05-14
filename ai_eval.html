@@ -139,11 +139,22 @@
         <!-- Step 1 -->
         <div class="step-section">
             <div class="step-title"><span class="badge">1</span> 評価対象の設定</div>
-            <div class="context-group full-width" style="margin-bottom: 12px;">
-                <label>場所</label>
-                <select id="eval-location" class="context-input" onchange="updateZoneOptions()">
-                    <option value="">選択してください</option>
-                </select>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                <div class="context-group">
+                    <label>場所</label>
+                    <select id="eval-location" class="context-input" onchange="updateZoneOptions()">
+                        <option value="">選択してください</option>
+                    </select>
+                </div>
+                <div class="context-group">
+                    <label>天候 (外部要因)</label>
+                    <select id="eval-weather" class="context-input">
+                        <option value="晴">晴れ</option>
+                        <option value="曇">曇り</option>
+                        <option value="雨">雨</option>
+                        <option value="雪">雪</option>
+                    </select>
+                </div>
             </div>
             <div class="context-group full-width">
                 <label>セクション・ゾーン</label>
@@ -155,9 +166,24 @@
 
         <!-- Step 2 -->
         <div class="step-section">
-            <div class="step-title"><span class="badge">2</span> 音響データの選択</div>
-            <div id="audioDataContainer" class="audio-list">
-                <p style="color: #64748b; font-size: 13px;">対象ゾーンを選択すると解析済みデータが表示されます。</p>
+            <div class="step-title"><span class="badge">2</span> 評価データの選択 (動画/画像)</div>
+            <p style="color: #64748b; font-size: 13px; margin-bottom: 16px;">
+                ※ 動画データ（最大5分程度）や画像をアップロードしてください。<br>
+                <strong style="color: #3b82f6;">【AI（Gemini）解析プロンプト制約】</strong><br>
+                「動画の開始・中間・終了の各30秒を重点サンプリングして、設定されたペルソナ属性に基づいて多角的に評価せよ」
+            </p>
+            
+            <div class="image-upload-area" style="margin-bottom: 12px;">
+                <label for="ai-media-upload" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <i data-lucide="upload-cloud"></i> メディアファイルを選択
+                </label>
+                <input type="file" id="ai-media-upload" accept="video/*, image/*" style="display: none;" onchange="handleMediaUpload(this)">
+                
+                <div id="media-preview" style="display: none; margin-top: 16px; border: 1px dashed var(--border-color); padding: 12px; border-radius: 8px; text-align: center;">
+                    <i data-lucide="video" style="width: 32px; height: 32px; color: #3b82f6; margin-bottom: 8px;"></i>
+                    <div id="media-filename" style="color: white; font-weight: 500; font-size: 14px;"></div>
+                    <div style="color: #94a3b8; font-size: 12px; margin-top: 4px;">アップロード完了（解析準備OK）</div>
+                </div>
             </div>
         </div>
 
@@ -258,15 +284,15 @@
 
             let html = '';
             mockData.forEach((data, idx) => {
-                html += \`
+                html += `
                     <label class="audio-item">
-                        <input type="radio" name="audioSelect" value='\${JSON.stringify(data)}' \${idx===0 ? 'checked' : ''}>
+                        <input type="radio" name="audioSelect" value='${JSON.stringify(data)}' ${idx===0 ? 'checked' : ''}>
                         <div>
-                            <div style="color: white; font-weight: 500;">本日のデータ - \${data.time}</div>
-                            <div style="color: #94a3b8; font-size: 12px; margin-top: 4px;">音量レベル: \${data.db}dB / 特徴: \${data.type}</div>
+                            <div style="color: white; font-weight: 500;">本日のデータ - ${data.time}</div>
+                            <div style="color: #94a3b8; font-size: 12px; margin-top: 4px;">音量レベル: ${data.db}dB / 特徴: ${data.type}</div>
                         </div>
                     </label>
-                \`;
+                `;
             });
             container.innerHTML = html;
         }
@@ -283,15 +309,15 @@
                 
                 let html = '';
                 aiPersonas.forEach((p, idx) => {
-                    html += \`
+                    html += `
                         <label class="persona-card">
-                            <input type="checkbox" name="personaSelect" value="\${p.id}" checked>
+                            <input type="checkbox" name="personaSelect" value="${p.id}" checked>
                             <div>
-                                <div style="color: white; font-weight: 500;">\${p.name}</div>
-                                <div style="color: #94a3b8; font-size: 12px; margin-top: 4px;">属性: \${p.sensitivity==='high'?'音量高を好む':'静けさを好む'} / 重視: \${p.indicator}</div>
+                                <div style="color: white; font-weight: 500;">${p.name}</div>
+                                <div style="color: #94a3b8; font-size: 12px; margin-top: 4px;">属性: ${p.sensitivity==='high'?'音量高を好む':'静けさを好む'} / 重視: ${p.indicator}</div>
                             </div>
                         </label>
-                    \`;
+                    `;
                 });
                 container.innerHTML = html;
             } else {
@@ -307,12 +333,12 @@
                 return;
             }
 
-            const audioRadio = document.querySelector('input[name="audioSelect"]:checked');
-            if(!audioRadio) {
-                alert('音響データを選択してください。');
+            if(!selectedAudioMock) {
+                alert('メディアデータ（動画または画像）をアップロードしてください。');
                 return;
             }
-            selectedAudioMock = JSON.parse(audioRadio.value);
+
+            const weather = document.getElementById('eval-weather').value;
 
             const selectedPersonaIds = Array.from(document.querySelectorAll('input[name="personaSelect"]:checked')).map(cb => cb.value);
             if(selectedPersonaIds.length === 0) {
@@ -325,7 +351,7 @@
             document.getElementById('resultsSection').style.display = 'none';
 
             setTimeout(() => {
-                generateEvaluations(selectedPersonaIds, selectedAudioMock, placeId, zoneId);
+                generateEvaluations(selectedPersonaIds, selectedAudioMock, placeId, zoneId, weather);
                 document.getElementById('loadingOverlay').style.display = 'none';
                 document.getElementById('resultsSection').style.display = 'block';
                 // 下までスクロール
@@ -334,10 +360,17 @@
         }
 
         // シミュレーターロジック
-        function generateEvaluations(personaIds, audio, placeId, zoneId) {
+        function generateEvaluations(personaIds, audio, placeId, zoneId, weather) {
             generatedEvaluations = [];
             const container = document.getElementById('resultsContainer');
             container.innerHTML = '';
+            
+            // 指標マスタを読み込み
+            const indicators = JSON.parse(localStorage.getItem('sys_indicators') || '[]');
+            
+            // Placeのアセット情報を取得
+            const place = nigiwaiPlaces.find(p => p.id === placeId);
+            const assetType = place ? place.asset : '';
 
             personaIds.forEach(pId => {
                 const persona = aiPersonas.find(p => p.id === pId);
@@ -347,18 +380,18 @@
                 let score = 3; // base score
                 let comment = '';
 
-                // 音量と感受性の交差
-                if(audio.db > 60) {
-                    if(persona.sensitivity === 'high') { score += 1; comment += '賑やかな音環境で活気を感じました。'; }
-                    else { score -= 1; comment += '音量が大きく、落ち着かない環境でした。'; }
-                } else {
-                    if(persona.sensitivity === 'high') { score -= 1; comment += '少し静かすぎて物足りなさを感じました。'; }
-                    else { score += 1; comment += '静かでリラックスできる適度な音環境でした。'; }
+                // 天候による評価影響シミュレーション
+                if(weather === '雨' || weather === '雪') {
+                    score -= 0.5;
+                    comment += `天候が${weather}のため、全体的に活気は控えめでした。`;
+                } else if(weather === '晴') {
+                    score += 0.5;
+                    comment += `晴天で人出が多く、ポジティブな雰囲気が感じられました。`;
                 }
 
                 // 指標とタイプによる微調整
-                if(persona.indicator === 'liveliness' && audio.type.includes('活気')) score += 1;
-                if(persona.indicator === 'quietness' && audio.type.includes('静か')) score += 1;
+                if(persona.indicator === 'liveliness') { score += 0.5; comment += '（活気重視：賑わいを肯定的に評価）'; }
+                if(persona.indicator === 'quietness') { score -= 0.5; comment += '（静けさ重視：喧噪をややマイナス評価）'; }
 
                 // スコア丸め
                 score = Math.max(1, Math.min(5, score));
@@ -366,8 +399,8 @@
                 // モックの10項目レーティング生成 (cause 10 + result 10)
                 const mockRatings = {};
                 for(let i=0; i<10; i++) {
-                    mockRatings[\`cause-\${i}\`] = Math.max(1, Math.min(5, score + Math.floor(Math.random() * 3) - 1));
-                    mockRatings[\`result-\${i}\`] = Math.max(1, Math.min(5, score + Math.floor(Math.random() * 3) - 1));
+                    mockRatings[`cause-${i}`] = Math.max(1, Math.min(5, score + Math.floor(Math.random() * 3) - 1));
+                    mockRatings[`result-${i}`] = Math.max(1, Math.min(5, score + Math.floor(Math.random() * 3) - 1));
                 }
 
                 // 総合スコア (平均の近似)
@@ -376,24 +409,26 @@
                 const evalData = {
                     id: 'eval_ai_' + Date.now() + Math.floor(Math.random()*1000),
                     timestamp: new Date().toISOString(), // 記録時刻
-                    audioTime: audio.time,
+                    date: new Date().toISOString().split('T')[0],
+                    time: audio.time,
+                    weather: weather,
                     placeId: placeId,
                     zoneId: zoneId,
-                    source: \`AI (\${persona.name})\`,
+                    source: `AI (${persona.name})`,
                     ratings: mockRatings,
-                    comment: comment + \`（\${persona.purpose || '目的設定なし'}の視点より）\`,
+                    comment: comment + `（${persona.purpose || '目的設定なし'}の視点より）`,
                     avgScore: avgScore // プレビュー用
                 };
                 generatedEvaluations.push(evalData);
 
                 // UI生成
-                container.innerHTML += \`
+                container.innerHTML += `
                     <div class="eval-result-card">
-                        <h4><i data-lucide="bot"></i> \${persona.name}</h4>
-                        <div class="eval-score">推計スコア: \${avgScore.toFixed(1)} / 5.0</div>
-                        <div class="eval-comment">"\${evalData.comment}"</div>
+                        <h4><i data-lucide="bot"></i> ${persona.name}</h4>
+                        <div class="eval-score">推計スコア: ${avgScore.toFixed(1)} / 5.0</div>
+                        <div class="eval-comment">"${evalData.comment}"</div>
                     </div>
-                \`;
+                `;
             });
             lucide.createIcons();
         }

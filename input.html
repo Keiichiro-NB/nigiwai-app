@@ -16,8 +16,6 @@
             <i data-lucide="edit-3" style="color: #3b82f6;"></i>
             現地評価入力
         </div>
-        <!-- バツボタンでzone.htmlに戻る -->
-        <a href="zone.html" class="close-btn"><i data-lucide="x"></i></a>
     </header>
 
     <!-- 調査コンテキスト設定 (アコーディオン) -->
@@ -33,6 +31,10 @@
                 <select id="eval-time" class="context-input">
                     <option value="">選択してください</option>
                 </select>
+            </div>
+            <div class="context-group full-width">
+                <label>評価者 (氏名)</label>
+                <input type="text" id="eval-evaluator-name" class="context-input" placeholder="例: 鈴木 一郎">
             </div>
             <div class="context-group full-width">
                 <label>場所</label>
@@ -135,6 +137,7 @@
                         placeId: draftData.location || '',
                         zoneId: draftData.zone || '',
                         source: 'Human',
+                        evaluator_name: draftData.evaluatorName || '',
                         ratings: draftData.ratings || {},
                         comment: draftData.generalComment || ''
                     };
@@ -167,45 +170,55 @@
             }, 1500);
         }
 
-        // KNF 原因指標 (10項目)
-        const causeIndicators = [
-            "歩きやすさ・動線の広さ",
-            "座る場所・滞留スペースの多さ",
-            "清潔感・美観の良さ",
-            "音環境（BGMや騒音の適切さ）",
-            "照明・明るさの適切さ",
-            "視線の抜け・開放感",
-            "緑・自然の豊かさ",
-            "日当たり・風通しの良さ",
-            "飲食やコンテンツの魅力",
-            "安全性・安心感"
-        ];
-
-        // KNF 結果指標 (10項目)
-        const resultIndicators = [
-            "全体の活気・盛り上がり",
-            "居心地の良さ・リラックス感",
-            "来訪者の多様性（年齢層など）",
-            "回遊・散策の活発さ",
-            "滞留の長さ（長居しているか）",
-            "会話の多さ・交流",
-            "笑顔・ポジティブな表情",
-            "写真撮影などの能動的行動",
-            "子供の遊び・走り回り",
-            "イベントや音楽への参加度"
-        ];
-
-        // HTML生成関数 (カードの繰り返し記述を避けるため)
-        function renderCards(containerId, indicators, prefix) {
+        // --- 指標動的生成ロジック ---
+        let currentIndicators = [];
+        
+        function renderDynamicCards(locationId) {
+            const savedIndicators = localStorage.getItem('sys_indicators');
+            if(savedIndicators) {
+                currentIndicators = JSON.parse(savedIndicators);
+            } else {
+                currentIndicators = []; // no indicators
+            }
+            
+            // 選択されたPlaceのアセット種別を取得
+            let assetType = '';
+            if(locationId) {
+                const place = nigiwaiPlaces.find(p => p.id === locationId);
+                if(place && place.asset) {
+                    assetType = place.asset;
+                }
+            }
+            
+            // フィルタリング: 代表指標 または アセット種別が一致する固有指標
+            const filteredIndicators = currentIndicators.filter(ind => {
+                if(ind.isRepresentative) return true;
+                if(assetType && ind.assets && ind.assets.includes(assetType)) return true;
+                return false;
+            });
+            
+            const causeInds = filteredIndicators.filter(ind => ind.type === 'cause');
+            const resultInds = filteredIndicators.filter(ind => ind.type === 'result');
+            
+            renderCardsFromMaster('cause-list', causeInds);
+            renderCardsFromMaster('result-list', resultInds);
+        }
+        
+        function renderCardsFromMaster(containerId, indicators) {
             const container = document.getElementById(containerId);
             let html = '';
             
+            if(indicators.length === 0) {
+                container.innerHTML = '<p style="color: #94a3b8;">表示する指標がありません。</p>';
+                return;
+            }
+            
             indicators.forEach((ind, index) => {
-                const groupId = `${prefix}-${index}`;
+                const groupId = ind.id;
                 html += `
                     <div class="indicator-card">
                         <div class="indicator-header">
-                            <span class="indicator-name">${index + 1}. ${ind}</span>
+                            <span class="indicator-name">${index + 1}. ${ind.name} <span style="font-size: 11px; color: #64748b; margin-left: 8px;">${ind.isRepresentative ? '' : '[固有]'}</span></span>
                         </div>
                         <div class="rating-scale">
                             <div class="rating-btn" data-val="1" onclick="selectRating('${groupId}', 1, this)">1</div>
@@ -235,10 +248,6 @@
             
             container.innerHTML = html;
         }
-
-        // カードを生成
-        renderCards('cause-list', causeIndicators, 'cause');
-        renderCards('result-list', resultIndicators, 'result');
         
         // --- ここから追加：コンテキスト選択と一時保存のロジック ---
 
@@ -292,16 +301,10 @@
                     option.textContent = zone.name;
                     zoneSelect.appendChild(option);
                 });
-            } else if (selectedLocation === 'mebks-toyosu') {
-                // レガシーフォールバック
-                zoneSelect.disabled = false;
-                zoneSelect.innerHTML = `
-                    <option value="">選択してください</option>
-                    <option value="zone-a">ゾーンA</option>
-                    <option value="zone-b">ゾーンB</option>
-                    <option value="zone-c">ゾーンC</option>
-                `;
             }
+            
+            // 指標の再生成
+            renderDynamicCards(selectedLocation);
         }
 
         // 一時保存 (LocalStorage)
@@ -314,6 +317,7 @@
             const draftData = {
                 date: document.getElementById('eval-date').value,
                 time: document.getElementById('eval-time').value,
+                evaluatorName: document.getElementById('eval-evaluator-name').value,
                 location: document.getElementById('eval-location').value,
                 zone: document.getElementById('eval-zone').value,
                 generalComment: document.getElementById('general-comment').value,
@@ -365,6 +369,7 @@
                 // コンテキストの復元
                 if (draftData.date) document.getElementById('eval-date').value = draftData.date;
                 if (draftData.time) document.getElementById('eval-time').value = draftData.time;
+                if (draftData.evaluatorName) document.getElementById('eval-evaluator-name').value = draftData.evaluatorName;
                 if (draftData.location) {
                     document.getElementById('eval-location').value = draftData.location;
                     updateZoneOptions(); // ゾーンの選択肢を生成
@@ -521,6 +526,7 @@
         // ページ読み込み時の初期化処理
         document.addEventListener('DOMContentLoaded', () => {
             initPlaces();
+            renderDynamicCards(''); // 初期は全て代表指標等を描画
             loadDraft();
         });
 
