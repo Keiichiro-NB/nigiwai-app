@@ -124,6 +124,7 @@
                         <p style="color: var(--text-secondary); font-size: 13px; margin-top: 4px;">指標スコアのドリルダウンと直接修正</p>
                     </div>
                     <div style="display: flex; gap: 8px;">
+                        <button class="btn-primary" onclick="openChartModal()" style="padding: 6px 12px; background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; color: #60a5fa;"><i data-lucide="zoom-in"></i> グラフを拡大</button>
                         <button class="btn-primary" onclick="openInsightReport()" style="padding: 6px 12px;"><i data-lucide="file-text"></i> インサイトレポート</button>
                         <button class="btn-secondary" onclick="closeL2()" style="padding: 6px 12px;"><i data-lucide="x"></i> 閉じる</button>
                     </div>
@@ -162,9 +163,10 @@
                     <!-- 原因レイヤー -->
                     <div class="glass" style="padding: 20px; border-radius: 12px; border: 1px solid var(--border-color);">
                         <h3 style="margin-top: 0; color: #10b981; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">原因レイヤー (空間・設備)</h3>
-                        <div style="position: relative; height: 200px; width: 100%; margin: 16px 0;">
+                        <div style="position: relative; height: 250px; width: 100%; margin: 16px 0;">
                             <canvas id="causeRadarChart"></canvas>
                         </div>
+                        <div id="cause-legend-container" style="display: flex; flex-direction: column; gap: 4px; margin-top: 16px; margin-bottom: 24px; font-size: 11px; color: var(--text-secondary);"></div>
                         <div id="cause-scores-container" style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px; max-height: 200px; overflow-y: auto;">
                             <!-- JSで生成 -->
                         </div>
@@ -173,9 +175,10 @@
                     <!-- 結果レイヤー -->
                     <div class="glass" style="padding: 20px; border-radius: 12px; border: 1px solid var(--border-color);">
                         <h3 style="margin-top: 0; color: #8b5cf6; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">結果レイヤー (人の行動)</h3>
-                        <div style="position: relative; height: 200px; width: 100%; margin: 16px 0;">
+                        <div style="position: relative; height: 250px; width: 100%; margin: 16px 0;">
                             <canvas id="resultRadarChart"></canvas>
                         </div>
+                        <div id="result-legend-container" style="display: flex; flex-direction: column; gap: 4px; margin-top: 16px; margin-bottom: 24px; font-size: 11px; color: var(--text-secondary);"></div>
                         <div id="result-scores-container" style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px; max-height: 200px; overflow-y: auto;">
                             <!-- JSで生成 -->
                         </div>
@@ -195,6 +198,33 @@
             
         </main>
     </div>
+
+    <!-- Modal for Enlarged Charts -->
+    <div id="chart-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.4); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(12px);" onclick="if(event.target === this) closeChartModal()">
+        <div style="background: #ffffff; color: #1e293b; width: 90%; max-width: 1200px; max-height: 90vh; border-radius: 20px; padding: 32px; border: 1px solid rgba(0,0,0,0.1); overflow-y: auto; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.15);">
+            <button onclick="closeChartModal()" style="position: absolute; top: 16px; right: 16px; background: transparent; border: none; color: #64748b; cursor: pointer;"><i data-lucide="x" style="width: 24px; height: 24px;"></i></button>
+            <h2 style="margin-top: 0; margin-bottom: 24px; display: flex; align-items: center; gap: 8px;"><i data-lucide="bar-chart-2"></i> 詳細グラフ (拡大表示)</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px;">
+                <!-- 原因レイヤー -->
+                <div>
+                    <h3 style="margin-top: 0; color: #10b981; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 8px;">原因レイヤー (空間・設備)</h3>
+                    <div style="position: relative; height: 500px; width: 100%; margin: 16px 0;">
+                        <canvas id="causeRadarChartModal"></canvas>
+                    </div>
+                    <div id="cause-legend-container-modal" style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px; font-size: 13px; color: #475569;"></div>
+                </div>
+                <!-- 結果レイヤー -->
+                <div>
+                    <h3 style="margin-top: 0; color: #8b5cf6; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 8px;">結果レイヤー (人の行動)</h3>
+                    <div style="position: relative; height: 500px; width: 100%; margin: 16px 0;">
+                        <canvas id="resultRadarChartModal"></canvas>
+                    </div>
+                    <div id="result-legend-container-modal" style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px; font-size: 13px; color: #475569;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="dashboard.js"></script>
     <script src="auth.js"></script>
     <script>

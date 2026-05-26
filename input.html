@@ -30,6 +30,11 @@
                 <label>時間</label>
                 <select id="eval-time" class="context-input">
                     <option value="">選択してください</option>
+                    <option value="午前">午前</option>
+                    <option value="昼">昼</option>
+                    <option value="午後">午後</option>
+                    <option value="夕方">夕方</option>
+                    <option value="夜">夜</option>
                 </select>
             </div>
             <div class="context-group full-width">
@@ -54,8 +59,8 @@
 
     <!-- タブナビゲーション -->
     <div class="tabs-nav">
-        <button class="tab-btn active" onclick="switchTab('cause')">原因指標 (10項目)</button>
-        <button class="tab-btn" onclick="switchTab('result')">結果指標 (10項目)</button>
+        <button class="tab-btn active" onclick="switchTab('cause')">原因レイヤー</button>
+        <button class="tab-btn" onclick="switchTab('result')">結果レイヤー</button>
     </div>
 
     <!-- 原因指標タブ (空間・設備) -->
@@ -142,6 +147,27 @@
                         comment: draftData.generalComment || ''
                     };
                     
+                    // --- 追加: バリデーションとエラー強調フラグ ---
+                    let isComplete = true;
+                    document.querySelectorAll('.indicator-card').forEach(card => {
+                        // Check if card is visible
+                        if (card.style.display !== 'none') {
+                            const selectedBtn = card.querySelector('.rating-btn.selected');
+                            if (!selectedBtn) {
+                                isComplete = false;
+                                card.style.border = '2px solid #ef4444';
+                            } else {
+                                card.style.border = ''; // エラー解除
+                            }
+                        }
+                    });
+
+                    if (!isComplete) {
+                        alert("未評価の指標があります。赤枠の項目を確認してください。");
+                        btn.innerHTML = originalHtml;
+                        return;
+                    }
+
                     let evaluations = [];
                     const storedEvals = localStorage.getItem('sys_evaluations');
                     if (storedEvals) {
@@ -174,9 +200,13 @@
         let currentIndicators = [];
         
         function renderDynamicCards(locationId) {
-            const savedIndicators = localStorage.getItem('sys_indicators');
+            const savedIndicators = localStorage.getItem('nigiwai_indicators');
             if(savedIndicators) {
                 currentIndicators = JSON.parse(savedIndicators);
+                // init-data.js に初期設定されている英語の 'marche' を日本語の 'マルシェ' に自動補正
+                currentIndicators.forEach(ind => {
+                    if (ind.assetId === 'marche') ind.assetId = 'マルシェ';
+                });
             } else {
                 currentIndicators = []; // no indicators
             }
@@ -192,13 +222,13 @@
             
             // フィルタリング: 代表指標 または アセット種別が一致する固有指標
             const filteredIndicators = currentIndicators.filter(ind => {
-                if(ind.isRepresentative) return true;
-                if(assetType && ind.assets && ind.assets.includes(assetType)) return true;
+                if(ind.category === 'representative' || ind.assetId === 'all') return true;
+                if(assetType && ind.assetId === assetType) return true;
                 return false;
             });
             
             const causeInds = filteredIndicators.filter(ind => ind.type === 'cause');
-            const resultInds = filteredIndicators.filter(ind => ind.type === 'result');
+            const resultInds = filteredIndicators.filter(ind => ind.type === 'result' || ind.type === 'effect');
             
             renderCardsFromMaster('cause-list', causeInds);
             renderCardsFromMaster('result-list', resultInds);
@@ -218,7 +248,7 @@
                 html += `
                     <div class="indicator-card">
                         <div class="indicator-header">
-                            <span class="indicator-name">${index + 1}. ${ind.name} <span style="font-size: 11px; color: #64748b; margin-left: 8px;">${ind.isRepresentative ? '' : '[固有]'}</span></span>
+                            <span class="indicator-name">${index + 1}. ${ind.name} <span style="font-size: 11px; color: #64748b; margin-left: 8px;">${ind.category === 'representative' || ind.assetId === 'all' ? '' : '[固有]'}</span></span>
                         </div>
                         <div class="rating-scale">
                             <div class="rating-btn" data-val="1" onclick="selectRating('${groupId}', 1, this)">1</div>
@@ -294,7 +324,7 @@
             const place = nigiwaiPlaces.find(p => p.id === selectedLocation);
             if (place && place.zones && place.zones.length > 0) {
                 zoneSelect.disabled = false;
-                zoneSelect.innerHTML = '<option value="">選択してください</option>';
+                zoneSelect.innerHTML = '<option value="">選択してください</option><option value="全体">全体</option>';
                 place.zones.forEach(zone => {
                     const option = document.createElement('option');
                     option.value = zone.id;
@@ -414,23 +444,8 @@
 
         // --- ここから追加：画像の処理と時間の生成 ---
 
-        // 時間の選択肢を生成 (30分刻み)
-        function generateTimeOptions() {
-            const timeSelect = document.getElementById('eval-time');
-            if(!timeSelect) return;
-            for (let h = 0; h < 24; h++) {
-                for (let m = 0; m < 60; m += 30) {
-                    const hh = h.toString().padStart(2, '0');
-                    const mm = m.toString().padStart(2, '0');
-                    const timeStr = `${hh}:${mm}`;
-                    const option = document.createElement('option');
-                    option.value = timeStr;
-                    option.textContent = timeStr;
-                    timeSelect.appendChild(option);
-                }
-            }
-        }
-        generateTimeOptions();
+        // 時間の選択肢はHTMLに固定記述に変更したため generateTimeOptions は削除
+
 
         // 画像のリサイズ処理 (Canvasを使用)
         function resizeImage(file, maxSize = 500) {

@@ -70,8 +70,14 @@
                         <input type="text" id="placeName" placeholder="例: メブクス豊洲" oninput="updateCurrentPlace()">
                     </div>
                     <div class="form-group">
-                        <label>アセット種別 (マルシェ, 公園 等)</label>
-                        <input type="text" id="placeAsset" placeholder="例: マルシェ" oninput="updateCurrentPlace()">
+                        <label>アセット種別</label>
+                        <select id="placeAsset" onchange="updateCurrentPlace()">
+                            <option value="マルシェ">マルシェ</option>
+                            <option value="公園・みどり">公園・みどり</option>
+                            <option value="商業施設">商業施設</option>
+                            <option value="飲食店">飲食店</option>
+                            <option value="共創オフィス">共創オフィス</option>
+                        </select>
                         <div class="help-text">ここで設定したアセット種別が指標マスタの固有指標と紐づきます。</div>
                     </div>
                     <div class="form-group">
@@ -181,24 +187,24 @@
                         <input type="text" id="personaName" placeholder="例: 活気重視ペルソナ" oninput="updateCurrentPersona()">
                     </div>
                     <div class="form-group">
-                        <label>音量感受性</label>
-                        <select id="personaSensitivity" onchange="updateCurrentPersona()">
-                            <option value="high">高い（大きな音を好む/活気として捉える）</option>
-                            <option value="low">低い（静かさを好む/大きな音を騒音として捉える）</option>
-                        </select>
+                        <label>属性・基本情報</label>
+                        <textarea id="personaAttributes" placeholder="例: 30代半ば、都内近郊在住..." oninput="updateCurrentPersona()" rows="2"></textarea>
                     </div>
                     <div class="form-group">
-                        <label>重視する指標</label>
-                        <select id="personaIndicator" onchange="updateCurrentPersona()">
-                            <option value="liveliness">活気・盛り上がり</option>
-                            <option value="quietness">静けさ・リラックス</option>
-                            <option value="safety">安全性・清潔感</option>
-                            <option value="diversity">多様性・交流</option>
-                        </select>
+                        <label>ライフスタイル・価値観</label>
+                        <textarea id="personaLifestyle" placeholder="日常の中に..." oninput="updateCurrentPersona()" rows="2"></textarea>
                     </div>
                     <div class="form-group">
-                        <label>行動目的</label>
-                        <input type="text" id="personaPurpose" placeholder="例: 家族でのお出かけ、ソロワーク" oninput="updateCurrentPersona()">
+                        <label>情報感度・メディア接触 (Sensitivity)</label>
+                        <textarea id="personaSensitivity" placeholder="マスメディアの流行に..." oninput="updateCurrentPersona()" rows="2"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>求める快適性 (Comfort)</label>
+                        <textarea id="personaComfort" placeholder="無駄なストレスがない..." oninput="updateCurrentPersona()" rows="2"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>感情的価値 (Emotional)</label>
+                        <textarea id="personaEmotional" placeholder="視覚的な美しさ..." oninput="updateCurrentPersona()" rows="2"></textarea>
                     </div>
                 </div>
             </div>
@@ -516,17 +522,6 @@
         // --- 指標 (Indicator) 管理のステート ---
         let indicatorsData = [];
 
-        function toggleAssetTag(index, assetName) {
-            if (!indicatorsData[index].assets) indicatorsData[index].assets = [];
-            const pos = indicatorsData[index].assets.indexOf(assetName);
-            if (pos > -1) {
-                indicatorsData[index].assets.splice(pos, 1);
-            } else {
-                indicatorsData[index].assets.push(assetName);
-            }
-            renderIndicatorList();
-        }
-
         function renderIndicatorList() {
             const tbodyRep = document.getElementById('indicatorTableBodyRep');
             const tbodySpec = document.getElementById('indicatorTableBodySpec');
@@ -534,16 +529,16 @@
             tbodyRep.innerHTML = '';
             tbodySpec.innerHTML = '';
             
-            // 全対象地からアセット種別の一覧を抽出（空文字や重複を除外）
-            const allAssets = [...new Set(placesData.map(p => p.asset).filter(Boolean))];
+            // ユーザー指定の5つのアセット選択肢を固定設定（動的抽出を廃止）
+            const allAssets = ['マルシェ', '公園・みどり', '商業施設', '飲食店', '共創オフィス'];
             
             if (indicatorsData.length === 0) {
                 // 初期10個ずつ生成 (代表10, 固有10) = 20
                 for(let i=0; i<10; i++) {
-                    indicatorsData.push({ id: 'ind_rep_' + Date.now() + '_' + i, type: i < 5 ? 'cause' : 'result', isRepresentative: true, name: '', assets: [] });
+                    indicatorsData.push({ id: 'ind_rep_' + Date.now() + '_' + i, type: i < 5 ? 'cause' : 'effect', category: 'representative', name: '', assetId: 'all' });
                 }
                 for(let i=0; i<10; i++) {
-                    indicatorsData.push({ id: 'ind_spec_' + Date.now() + '_' + i, type: i < 5 ? 'cause' : 'result', isRepresentative: false, name: '', assets: [] });
+                    indicatorsData.push({ id: 'ind_spec_' + Date.now() + '_' + i, type: i < 5 ? 'cause' : 'effect', category: 'unique', name: '', assetId: '' });
                 }
             }
 
@@ -552,42 +547,59 @@
                 
                 // Asset chip UI
                 let assetHtml = '';
-                if(ind.isRepresentative) {
+                if(ind.category === 'representative' || ind.assetId === 'all') {
                     assetHtml = '<span style="color:var(--admin-muted); font-size: 12px;">(全アセット適用)</span>';
                 } else {
-                    assetHtml = '<div style="display:flex; gap:4px; flex-wrap:wrap;">';
+                    let currentAssets = ind.assetId || [];
+                    if (!Array.isArray(currentAssets)) currentAssets = [currentAssets];
+                    
                     if(allAssets.length === 0) {
-                        assetHtml += '<span style="color:var(--admin-muted); font-size:12px;">対象地にアセット登録なし</span>';
+                        assetHtml = '<span style="color:var(--text-secondary); font-size:11px;">対象地にアセット登録なし</span>';
                     } else {
+                        assetHtml = '<div style="display:flex; gap:4px; flex-wrap:wrap;">';
                         allAssets.forEach(ast => {
-                            const isSelected = ind.assets && ind.assets.includes(ast);
-                            const bg = isSelected ? '#3b82f6' : 'transparent';
-                            const border = isSelected ? '#3b82f6' : 'var(--admin-border)';
-                            assetHtml += `<span onclick="toggleAssetTag(${index}, '${ast}')" style="cursor:pointer; padding: 2px 8px; border-radius: 12px; font-size: 11px; border: 1px solid ${border}; background: ${bg}; color: white; transition: all 0.2s;">${ast}</span>`;
+                            const isSelected = currentAssets.includes(ast);
+                            const bg = isSelected ? 'var(--accent-color)' : 'rgba(255,255,255,0.1)';
+                            assetHtml += `<span onclick="toggleAsset(${index}, '${ast}')" style="cursor:pointer; padding:2px 6px; border-radius:4px; font-size:11px; background:${bg};">${ast}</span>`;
                         });
+                        assetHtml += '</div>';
                     }
-                    assetHtml += '</div>';
                 }
 
                 tr.innerHTML = `
                     <td>
-                        <span style="font-size: 13px; font-weight: 500; color: ${ind.isRepresentative ? '#10b981' : '#8b5cf6'};">${ind.isRepresentative ? '代表' : '固有'}</span>
+                        <span style="font-size: 13px; font-weight: 500; color: ${ind.category === 'representative' ? '#10b981' : '#8b5cf6'};">${ind.category === 'representative' ? '代表' : '固有'}</span>
                     </td>
                     <td>${assetHtml}</td>
                     <td>
                         <select onchange="updateIndicator(${index}, 'type', this.value)" style="background:transparent; border:none; color:inherit; border-bottom: 1px solid var(--admin-border); padding: 4px;">
                             <option value="cause" ${ind.type === 'cause' ? 'selected' : ''} style="color:black;">原因</option>
-                            <option value="result" ${ind.type === 'result' ? 'selected' : ''} style="color:black;">結果</option>
+                            <option value="effect" ${ind.type === 'effect' || ind.type === 'result' ? 'selected' : ''} style="color:black;">結果</option>
                         </select>
                     </td>
                     <td><input type="text" value="${ind.name}" oninput="updateIndicator(${index}, 'name', this.value)" style="background:transparent; border:none; color:inherit; width: 100%; border-bottom: 1px solid var(--admin-border); padding: 4px;" placeholder="指標名"></td>
                     <td><button class="btn-icon" onclick="deleteIndicator(${index})"><i data-lucide="trash-2"></i></button></td>
                 `;
                 
-                if(ind.isRepresentative) tbodyRep.appendChild(tr);
+                if(ind.category === 'representative') tbodyRep.appendChild(tr);
                 else tbodySpec.appendChild(tr);
             });
             lucide.createIcons();
+        }
+
+        function toggleAsset(index, ast) {
+            if (!indicatorsData[index]) return;
+            let current = indicatorsData[index].assetId;
+            if (!Array.isArray(current)) {
+                current = current ? [current] : [];
+            }
+            if (current.includes(ast)) {
+                current = current.filter(x => x !== ast);
+            } else {
+                current.push(ast);
+            }
+            indicatorsData[index].assetId = current;
+            renderIndicatorList();
         }
 
         function updateIndicator(index, field, value) {
@@ -600,9 +612,9 @@
             indicatorsData.push({
                 id: 'ind_' + Date.now(),
                 type: 'cause',
-                isRepresentative: isRep,
+                category: isRep ? 'representative' : 'unique',
                 name: '',
-                assets: []
+                assetId: isRep ? 'all' : ''
             });
             renderIndicatorList();
         }
@@ -631,16 +643,10 @@
                 item.className = 'place-list-item' + (persona.id === currentPersonaId ? ' active' : '');
                 item.onclick = () => selectPersona(persona.id);
                 
-                let indicatorName = '';
-                if(persona.indicator === 'liveliness') indicatorName = '活気重視';
-                if(persona.indicator === 'quietness') indicatorName = '静けさ重視';
-                if(persona.indicator === 'safety') indicatorName = '安全性重視';
-                if(persona.indicator === 'diversity') indicatorName = '多様性重視';
-
                 item.innerHTML = `
                     <div>
                         <div class="place-list-item-title">${persona.name || '名称未設定'}</div>
-                        <div class="place-list-item-meta">${indicatorName} / ${persona.purpose || '目的未設定'}</div>
+                        <div class="place-list-item-meta" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px;">${persona.attributes || '属性未設定'}</div>
                     </div>
                     <i data-lucide="chevron-right" style="color: var(--admin-muted); width: 16px;"></i>
                 `;
@@ -657,9 +663,11 @@
             if (p) {
                 document.getElementById('personaEditorSection').style.display = 'block';
                 document.getElementById('personaName').value = p.name || '';
-                document.getElementById('personaSensitivity').value = p.sensitivity || 'high';
-                document.getElementById('personaIndicator').value = p.indicator || 'liveliness';
-                document.getElementById('personaPurpose').value = p.purpose || '';
+                document.getElementById('personaAttributes').value = p.attributes || '';
+                document.getElementById('personaLifestyle').value = p.lifestyle || '';
+                document.getElementById('personaSensitivity').value = p.sensitivity || '';
+                document.getElementById('personaComfort').value = p.comfort || '';
+                document.getElementById('personaEmotional').value = p.emotional || '';
             }
         }
 
@@ -668,9 +676,11 @@
             const p = personasData.find(x => x.id === currentPersonaId);
             if (p) {
                 p.name = document.getElementById('personaName').value;
+                p.attributes = document.getElementById('personaAttributes').value;
+                p.lifestyle = document.getElementById('personaLifestyle').value;
                 p.sensitivity = document.getElementById('personaSensitivity').value;
-                p.indicator = document.getElementById('personaIndicator').value;
-                p.purpose = document.getElementById('personaPurpose').value;
+                p.comfort = document.getElementById('personaComfort').value;
+                p.emotional = document.getElementById('personaEmotional').value;
                 renderPersonaList();
             }
         }
@@ -680,9 +690,11 @@
             personasData.push({
                 id: newId,
                 name: '新しいAIペルソナ',
-                sensitivity: 'high',
-                indicator: 'liveliness',
-                purpose: ''
+                attributes: '',
+                lifestyle: '',
+                sensitivity: '',
+                comfort: '',
+                emotional: ''
             });
             selectPersona(newId);
         }
@@ -709,10 +721,27 @@
             
             // Placeデータ
             localStorage.setItem('sys_places', JSON.stringify(placesData));
-            // Indicatorデータ
-            localStorage.setItem('sys_indicators', JSON.stringify(indicatorsData));
-            // Personaデータ
-            localStorage.setItem('sys_personas', JSON.stringify(personasData));
+            // Indicatorデータ (init-data.js と全く同じ5属性のみを過不足なく保存)
+            const cleanIndicators = indicatorsData.map(ind => ({
+                id: ind.id,
+                name: ind.name,
+                type: ind.type,
+                category: ind.category,
+                assetId: ind.assetId
+            }));
+            localStorage.setItem('nigiwai_indicators', JSON.stringify(cleanIndicators));
+            
+            // Personaデータ (7属性のみを過不足なく保存)
+            const cleanPersonas = personasData.map(p => ({
+                id: p.id,
+                name: p.name,
+                attributes: p.attributes,
+                lifestyle: p.lifestyle,
+                sensitivity: p.sensitivity,
+                comfort: p.comfort,
+                emotional: p.emotional
+            }));
+            localStorage.setItem('nigiwai_personas', JSON.stringify(cleanPersonas));
 
             // API連携
             localStorage.setItem('auphonic_api_key', document.getElementById('auphonicKey').value);
@@ -756,16 +785,20 @@
             }
 
             // 指標データ
-            const savedIndicators = localStorage.getItem('sys_indicators');
+            const savedIndicators = localStorage.getItem('nigiwai_indicators');
             if (savedIndicators) {
                 try {
                     indicatorsData = JSON.parse(savedIndicators);
+                    // init-data.js に初期設定されている英語の 'marche' を日本語の 'マルシェ' に自動補正
+                    indicatorsData.forEach(ind => {
+                        if (ind.assetId === 'marche') ind.assetId = 'マルシェ';
+                    });
                 } catch(e) { console.error(e); indicatorsData = []; }
             }
             renderIndicatorList();
 
             // ペルソナデータ
-            const savedPersonas = localStorage.getItem('sys_personas');
+            const savedPersonas = localStorage.getItem('nigiwai_personas');
             if (savedPersonas) {
                 try {
                     personasData = JSON.parse(savedPersonas);

@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nigiwai App - インサイトレポート</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="dashboard.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="init-data.js"></script>
+    <script src="data-store.js"></script>
+    <style>
+        .report-header {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+            display: flex;
+            gap: 20px;
+            align-items: flex-end;
+            backdrop-filter: blur(10px);
+        }
+        .report-header .form-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .report-header label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        .report-header select {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 10px 12px;
+            border-radius: 8px;
+            outline: none;
+            font-family: inherit;
+        }
+        /* Grid Layout */
+        .report-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        .col-left { display: flex; flex-direction: column; gap: 24px; }
+        .col-right { display: flex; flex-direction: column; gap: 24px; }
+        
+        .report-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #f8fafc;
+        }
+        
+        /* Individual Assessment Tables */
+        .category-block {
+            margin-bottom: 24px;
+        }
+        .category-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #a78bfa; /* accent color for category */
+            margin-bottom: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 8px;
+        }
+        .indicator-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .indicator-table th, .indicator-table td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .indicator-table th {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        .indicator-table tr:hover {
+            background: rgba(255,255,255,0.02);
+        }
+        .bar-container {
+            width: 100px;
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            position: relative;
+            margin: 0 8px;
+        }
+        .bar-fill {
+            position: absolute;
+            top: 0; left: 0; bottom: 0;
+            background: var(--accent-color);
+            border-radius: 3px;
+        }
+        .score-star { color: #f43f5e; font-size: 14px; }
+        
+        /* Overall Assessment */
+        .overall-score-box {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(139,92,246,0.1));
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        .score-circle {
+            width: 80px; height: 80px;
+            border-radius: 50%;
+            background: var(--bg-primary);
+            border: 3px solid #3b82f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            box-shadow: 0 0 15px rgba(59,130,246,0.3);
+        }
+        .score-circle .val { font-size: 28px; font-weight: 700; color: white; line-height: 1; }
+        .score-circle .lbl { font-size: 10px; color: var(--text-secondary); }
+        .overall-text { flex: 1; }
+        .character-title { font-size: 18px; font-weight: 600; color: #60a5fa; margin-bottom: 8px; }
+        .character-desc { font-size: 13px; color: #cbd5e1; line-height: 1.5; }
+        
+        .chart-container {
+            height: 250px;
+            width: 100%;
+            position: relative;
+        }
+        
+        /* Prescriptions */
+        .prescription-item {
+            background: rgba(0,0,0,0.2);
+            border-left: 3px solid #10b981;
+            padding: 12px 16px;
+            border-radius: 0 8px 8px 0;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+        .prescription-item h4 { margin: 0 0 4px 0; color: white; font-size: 14px; }
+        .prescription-item p { margin: 0; color: var(--text-secondary); line-height: 1.5; }
+        
+        /* Multi-select styling */
+        select[multiple] {
+            height: auto;
+            min-height: 80px;
+        }
+        option { padding: 4px 8px; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i data-lucide="activity"></i>
+                <span>Nigiwai</span>
+            </div>
+            <nav>
+                <a href="index.html"><i data-lucide="layout-dashboard"></i> ダッシュボード</a>
+                <a href="input.html"><i data-lucide="edit-3"></i> 現場入力 (UI)</a>
+                <a href="ai_eval.html"><i data-lucide="bot"></i> AIペルソナ評価</a>
+                <a href="insight_report.html" class="active"><i data-lucide="file-text"></i> インサイトレポート</a>
+                <a href="settings.html" class="admin-only"><i data-lucide="settings"></i> システム設定</a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header style="margin-bottom: 20px;">
+                <div class="header-title">
+                    <h1>対象地別 インサイトレポート</h1>
+                    <p>対象地のポテンシャル分析と改善処方箋</p>
+                </div>
+            </header>
+
+            <!-- Condition Header -->
+            <div class="report-header" style="flex-wrap: wrap;">
+                <div class="form-group">
+                    <label>対象地</label>
+                    <select id="report-place" onchange="onPlaceChange()"></select>
+                </div>
+                <div class="form-group">
+                    <label>ゾーン (複数選択可)</label>
+                    <select id="report-zones" multiple style="min-height: 80px;"></select>
+                </div>
+                <div class="form-group">
+                    <label>時間帯 (複数選択可)</label>
+                    <select id="report-times" multiple style="min-height: 80px;">
+                        <option value="午前">午前</option>
+                        <option value="昼">昼</option>
+                        <option value="午後">午後</option>
+                        <option value="夕方">夕方</option>
+                        <option value="夜">夜</option>
+                    </select>
+                </div>
+                <button class="btn-primary" onclick="generateReport()" style="height: 42px; padding: 0 24px; border-radius: 8px; align-self: flex-start; margin-top: 24px;">
+                    <i data-lucide="refresh-cw"></i> レポート生成
+                </button>
+            </div>
+            
+            <div id="empty-state" style="text-align: center; padding: 60px; color: var(--text-secondary);">
+                <i data-lucide="bar-chart-2" style="width: 48px; height: 48px; opacity: 0.5; margin-bottom: 16px;"></i>
+                <p>対象地とセッションを選択して「レポート生成」をクリックしてください。</p>
+            </div>
+
+            <!-- Report Grid -->
+            <div class="report-grid" id="report-content" style="display: none;">
+                <!-- Left Column -->
+                <div class="col-left">
+                    <div class="report-section">
+                        <h2 class="section-title"><i data-lucide="list-checks"></i> 個別評価 (Individual Assessment)</h2>
+                        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 20px;">空間が発揮すべき能力を定義し、代表/固有指標群の評価結果を可視化します。</p>
+                        <div id="individual-tables-container"></div>
+                    </div>
+                </div>
+
+                <!-- Right Column -->
+                <div class="col-right">
+                    <div class="report-section">
+                        <h2 class="section-title"><i data-lucide="pie-chart"></i> 総合診断 (Overall Assessment)</h2>
+                        <div id="overall-assessment-container"></div>
+                        <div class="chart-container" style="height: 280px; margin-top: 16px;">
+                            <canvas id="overallRadar"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="report-section">
+                        <h2 class="section-title"><i data-lucide="target"></i> アイデンティティ分析 (Identity Analysis)</h2>
+                        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">同アセット（<span id="asset-name-label" style="color:white; font-weight:bold;"></span>）の全体平均との比較により、この空間ならではの「尖り」を特定します。</p>
+                        <div class="chart-container">
+                            <canvas id="identityRadar"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="report-section">
+                        <h2 class="section-title"><i data-lucide="lightbulb"></i> 処方箋 (Prescription)</h2>
+                        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">テコ入れすべき弱点指標を特定し、深化・進化に向けた具体的なアクションを提案します。</p>
+                        <div id="prescription-container"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // Data Models
+        const CategoryMap = {
+            '歩きやすさ・動線': '空間品質',
+            '清潔感・美観の良さ': '空間品質',
+            '座る場所・滞留スペース': '空間品質',
+            '安全性・安心感': '空間品質',
+            '全体の活気': '集客力',
+            '居心地の良さ': '空間品質',
+            '来訪者の多様性': '集客力',
+            '笑顔・ポジティブ': '集客力',
+            '飲食やコンテンツ': '稼ぐ力',
+            '店舗の呼び込み': '稼ぐ力',
+            '購買の活発さ': '稼ぐ力',
+            'イベント参加度': '集客力',
+            '緑・自然の豊かさ': '空間品質',
+            '遊具の充実度': '集客力',
+            '子供の遊戯・走り回り': '集客力',
+            'スポーツ・運動の活発さ': '集客力'
+        };
+
+        const PolarityMap = {
+            '歩きやすさ・動線': ['歩きにくい', '歩きやすい'],
+            '清潔感・美観の良さ': ['汚れている', '美しい'],
+            '座る場所・滞留スペース': ['少ない', '多い'],
+            '安全性・安心感': ['不安', '安心'],
+            '全体の活気': ['閑散', '活気がある'],
+            '居心地の良さ': ['悪い', '良い'],
+            '来訪者の多様性': ['偏っている', '多様'],
+            '笑顔・ポジティブ': ['少ない', '多い'],
+            '飲食やコンテンツ': ['少ない', '充実'],
+            '店舗の呼び込み': ['消極的', '活発'],
+            '購買の活発さ': ['低い', '高い'],
+            'イベント参加度': ['低い', '高い'],
+            '緑・自然の豊かさ': ['少ない', '豊か'],
+            '遊具の充実度': ['貧弱', '充実'],
+            '子供の遊戯・走り回り': ['少ない', '多い'],
+            'スポーツ・運動の活発さ': ['少ない', '多い']
+        };
+
+        let overallChartInstance = null;
+        let identityChartInstance = null;
+
+        function mapTimeCategory(timeStr) {
+            if(!timeStr) return '';
+            if(['午前', '昼', '午後', '夕方', '夜'].includes(timeStr)) return timeStr;
+            const match = timeStr.match(/^(\d{1,2}):/);
+            if(match) {
+                const h = parseInt(match[1], 10);
+                if(h >= 5 && h < 11) return '午前';
+                if(h >= 11 && h < 14) return '昼';
+                if(h >= 14 && h < 17) return '午後';
+                if(h >= 17 && h < 19) return '夕方';
+                return '夜';
+            }
+            return timeStr;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initFilters();
+            
+            // Check URL params
+            const params = new URLSearchParams(window.location.search);
+            if(params.has('placeId')) {
+                document.getElementById('report-place').value = params.get('placeId');
+                onPlaceChange();
+                // Optionally select all and generate
+                setTimeout(() => {
+                    const elZones = document.getElementById('report-zones');
+                    if (elZones) {
+                        for(let i=0; i<elZones.options.length; i++) elZones.options[i].selected = true;
+                    }
+                    const elTimes = document.getElementById('report-times');
+                    if (elTimes) {
+                        for(let i=0; i<elTimes.options.length; i++) elTimes.options[i].selected = true;
+                    }
+                    if(elZones && elZones.options.length > 0) generateReport();
+                }, 100);
+            }
+        });
+
+        function initFilters() {
+            const places = JSON.parse(localStorage.getItem('sys_places') || '[]');
+            const elPlace = document.getElementById('report-place');
+            elPlace.innerHTML = '<option value="">-- 対象地を選択 --</option>';
+            places.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.text = p.name;
+                elPlace.appendChild(opt);
+            });
+        }
+
+        function onPlaceChange() {
+            const placeId = document.getElementById('report-place').value;
+            const elZones = document.getElementById('report-zones');
+            elZones.innerHTML = '';
+            
+            if(!placeId) return;
+
+            const places = JSON.parse(localStorage.getItem('sys_places') || '[]');
+            const place = places.find(p => p.id === placeId);
+            
+            if(place) {
+                // デフォルトの全体
+                const optAll = document.createElement('option');
+                optAll.value = '全体';
+                optAll.textContent = '全体';
+                optAll.selected = true;
+                elZones.appendChild(optAll);
+                
+                if(place.zones && place.zones.length > 0) {
+                    place.zones.forEach(z => {
+                        const opt = document.createElement('option');
+                        opt.value = z.id;
+                        opt.textContent = z.name;
+                        opt.selected = true;
+                        elZones.appendChild(opt);
+                    });
+                }
+            }
+        }
+
+        function generateReport() {
+            const placeId = document.getElementById('report-place').value;
+            const selectedZones = Array.from(document.getElementById('report-zones').selectedOptions).map(o => o.value);
+            const selectedTimes = Array.from(document.getElementById('report-times').selectedOptions).map(o => o.value);
+            
+            if(!placeId || selectedZones.length === 0 || selectedTimes.length === 0) {
+                alert('対象地と、少なくとも1つのゾーン・時間帯を選択してください。');
+                return;
+            }
+
+            document.getElementById('empty-state').style.display = 'none';
+            document.getElementById('report-content').style.display = 'grid';
+
+            const places = JSON.parse(localStorage.getItem('sys_places') || '[]');
+            const place = places.find(p => p.id === placeId);
+            const assetType = place ? place.asset : '';
+            document.getElementById('asset-name-label').innerText = assetType || 'アセット未設定';
+
+            const allEvals = JSON.parse(localStorage.getItem('sys_evaluations') || '[]');
+            allEvals.forEach(ev => ev.time = mapTimeCategory(ev.time));
+            
+            // Target Data
+            const targetEvals = allEvals.filter(e => 
+                e.placeId === placeId && 
+                selectedZones.includes(e.zoneId || '全体') &&
+                selectedTimes.includes(e.time)
+            );
+
+            // Asset Average Data (for identity analysis)
+            const assetEvals = allEvals.filter(e => {
+                const p = places.find(x => x.id === e.placeId);
+                return p && p.asset === assetType;
+            });
+
+            // Indicators
+            const indicators = JSON.parse(localStorage.getItem('nigiwai_indicators') || '[]');
+            // 動的表示：その対象地のアセットに紐づく指標のみ
+            indicators.forEach(ind => {
+                if (ind.assetId === 'marche') ind.assetId = ['マルシェ'];
+                else if (typeof ind.assetId === 'string' && ind.assetId !== 'all') ind.assetId = [ind.assetId];
+            });
+            const validIndicators = indicators.filter(ind => {
+                if(ind.category === 'representative' || ind.assetId === 'all') return true;
+                if(assetType) {
+                    if(Array.isArray(ind.assetId)) return ind.assetId.includes(assetType);
+                    return ind.assetId === assetType;
+                }
+                return false;
+            });
+
+            // Calculate Averages
+            const calcAverages = (evalList) => {
+                const scores = {};
+                validIndicators.forEach(i => scores[i.id] = { name: i.name, vals: [], type: i.type, id: i.id });
+                evalList.forEach(ev => {
+                    if(ev.ratings) {
+                        Object.keys(ev.ratings).forEach(indId => {
+                            if(scores[indId]) scores[indId].vals.push(Number(ev.ratings[indId]));
+                        });
+                    }
+                });
+                const result = {};
+                Object.values(scores).forEach(s => {
+                    result[s.id] = s.vals.length > 0 ? (s.vals.reduce((a,b)=>a+b,0) / s.vals.length) : 0;
+                });
+                return result;
+            };
+
+            const targetAvgs = calcAverages(targetEvals);
+            const assetAvgs = calcAverages(assetEvals);
+
+            // Enhance indicators with category and averages
+            const enrichedInds = validIndicators.map(ind => {
+                // Determine Category
+                let cat = 'その他';
+                for (const [key, val] of Object.entries(CategoryMap)) {
+                    if(ind.name.includes(key)) cat = val;
+                }
+                if(cat === 'その他') cat = ind.type === 'cause' ? '空間品質' : '集客力'; // Fallback
+                
+                // Determine Polarity
+                let pol = ['低い/少ない', '高い/多い'];
+                for (const [key, val] of Object.entries(PolarityMap)) {
+                    if(ind.name.includes(key)) pol = val;
+                }
+
+                return {
+                    ...ind,
+                    category: cat,
+                    sideA: pol[0],
+                    sideB: pol[1],
+                    score: targetAvgs[ind.id] || 0,
+                    assetAvg: assetAvgs[ind.id] || 0
+                };
+            });
+
+            renderIndividualAssessment(enrichedInds);
+            renderOverallAssessment(enrichedInds);
+            renderIdentityAnalysis(enrichedInds);
+            renderPrescription(enrichedInds);
+        }
+
+        function renderIndividualAssessment(inds) {
+            const container = document.getElementById('individual-tables-container');
+            container.innerHTML = '';
+
+            const categories = ['集客力', '空間品質', '稼ぐ力', 'その他'];
+            
+            categories.forEach(cat => {
+                const catInds = inds.filter(i => i.category === cat);
+                if(catInds.length === 0) return;
+
+                let html = `
+                    <div class="category-block">
+                        <div class="category-title">${cat} ${cat==='集客力'?'(にぎわいを生む力)':cat==='空間品質'?'(にぎわいを支える力)':'(賑わいを生む力)'}</div>
+                        <table class="indicator-table">
+                            <thead>
+                                <tr>
+                                    <th width="30">No</th>
+                                    <th>指標</th>
+                                    <th width="80" style="text-align: right;">Side-A</th>
+                                    <th width="120" style="text-align: center;">スコア</th>
+                                    <th width="80">Side-B</th>
+                                    <th width="40">強み</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                catInds.forEach((ind, idx) => {
+                    const percent = (ind.score / 5) * 100;
+                    const isStrength = ind.score >= 4.0;
+                    html += `
+                        <tr>
+                            <td style="color: var(--text-secondary);">${idx+1}</td>
+                            <td style="font-weight: 500;">${ind.name}</td>
+                            <td style="text-align: right; color: var(--text-secondary);">${ind.sideA}</td>
+                            <td style="text-align: center;">
+                                <div style="display: flex; align-items: center; justify-content: center;">
+                                    <div class="bar-container">
+                                        <div class="bar-fill" style="width: ${percent}%;"></div>
+                                    </div>
+                                    <span style="font-weight: bold; width: 24px;">${ind.score.toFixed(1)}</span>
+                                </div>
+                            </td>
+                            <td style="color: var(--text-secondary);">${ind.sideB}</td>
+                            <td style="text-align: center;">${isStrength ? '<i class="score-star" data-lucide="star" fill="currentColor"></i>' : ''}</td>
+                        </tr>
+                    `;
+                });
+
+                html += `</tbody></table></div>`;
+                container.innerHTML += html;
+            });
+            lucide.createIcons();
+        }
+
+        function renderOverallAssessment(inds) {
+            // Calculate total score 0-100
+            const activeInds = inds.filter(i => i.score > 0);
+            let totalAvg = 0;
+            if(activeInds.length > 0) {
+                totalAvg = activeInds.reduce((sum, i) => sum + i.score, 0) / activeInds.length;
+            }
+            const score100 = Math.round((totalAvg / 5) * 100);
+
+            // Determine Character
+            let characterTitle = "バランス型空間";
+            let characterDesc = "全体的にバランスが取れていますが、特筆すべき尖りが少ない状況です。";
+            
+            const causeAvg = inds.filter(i=>i.type==='cause').reduce((s,i)=>s+i.score,0) / (inds.filter(i=>i.type==='cause').length||1);
+            const resultAvg = inds.filter(i=>i.type==='result').reduce((s,i)=>s+i.score,0) / (inds.filter(i=>i.type==='result').length||1);
+
+            if(score100 > 80) {
+                characterTitle = "高完成度・賑わい創出空間";
+                characterDesc = "空間品質と集客力が高次元で融合し、自律的に賑わいを生み出している理想的な状態です。";
+            } else if (causeAvg > 3.8 && resultAvg < 3.0) {
+                characterTitle = "ポテンシャル未発揮空間 (ハード偏重)";
+                characterDesc = "設備や空間の質は高いものの、それが実際の行動や活気に結びついていません。ソフト面のテコ入れが必要です。";
+            } else if (causeAvg < 3.0 && resultAvg > 3.8) {
+                characterTitle = "イベント依存型空間 (ソフト偏重)";
+                characterDesc = "活気や集客はありますが、空間自体の質が追いついておらず、イベント等に依存している可能性があります。";
+            } else if (score100 < 50) {
+                characterTitle = "改善急務・停滞空間";
+                characterDesc = "ハード・ソフト両面で課題が多く、根本的なコンセプトの見直しや大規模な改善が求められます。";
+            }
+
+            document.getElementById('overall-assessment-container').innerHTML = `
+                <div class="overall-score-box">
+                    <div class="score-circle">
+                        <div class="val">${score100}</div>
+                        <div class="lbl">SCORE</div>
+                    </div>
+                    <div class="overall-text">
+                        <div class="character-title">『${characterTitle}』</div>
+                        <div class="character-desc">${characterDesc}</div>
+                    </div>
+                </div>
+            `;
+
+            // Draw Overall Radar (Cause vs Result vs something else? Or just top indicators)
+            // Group by category for radar
+            const cats = ['集客力', '空間品質', '稼ぐ力'];
+            const catScores = cats.map(c => {
+                const cInds = inds.filter(i => i.category === c && i.score > 0);
+                if(cInds.length === 0) return 0;
+                return cInds.reduce((s,i) => s + i.score, 0) / cInds.length;
+            });
+
+            // For Cause/Result comparison as requested:
+            const causeInds = inds.filter(i=>i.type==='cause').slice(0,5);
+            const resultInds = inds.filter(i=>i.type==='result').slice(0,5);
+            
+            // To make a good radar, maybe we just plot the categories, or cause vs result averages.
+            // Let's plot Cause indicators and Result indicators on the same axis if possible, or just representative indicators.
+            const repInds = inds.filter(i => i.isRepresentative).slice(0, 8); // top 8
+
+            drawRadar('overallRadar', repInds.map(i=>i.name), [
+                {
+                    label: '対象地スコア',
+                    data: repInds.map(i=>i.score),
+                    color: '#3b82f6'
+                }
+            ], overallChartInstance, (chart) => { overallChartInstance = chart; });
+        }
+
+        function renderIdentityAnalysis(inds) {
+            // Identity Analysis: compare target vs asset average using specific/inherent indicators
+            const specificInds = inds.filter(i => i.category === 'unique' && i.assetId !== 'all');
+            // If no specific, fallback to representative
+            const chartInds = specificInds.length >= 3 ? specificInds : inds.slice(0, 6);
+
+            drawRadar('identityRadar', chartInds.map(i=>i.name), [
+                {
+                    label: '対象地',
+                    data: chartInds.map(i=>i.score),
+                    color: '#10b981' // emerald
+                },
+                {
+                    label: 'アセット全体平均',
+                    data: chartInds.map(i=>i.assetAvg),
+                    color: '#94a3b8' // slate
+                }
+            ], identityChartInstance, (chart) => { identityChartInstance = chart; });
+        }
+
+        function renderPrescription(inds) {
+            const container = document.getElementById('prescription-container');
+            container.innerHTML = '';
+
+            // Find weaknesses (lowest scores, especially cause indicators)
+            const weakCauses = inds.filter(i => i.type === 'cause' && i.score > 0).sort((a,b) => a.score - b.score).slice(0, 2);
+            const strongResults = inds.filter(i => i.type === 'result' && i.score >= 3.5);
+
+            let html = '';
+
+            // Pattern 1: 深化 (Deepening current strengths)
+            html += `
+                <div class="prescription-item" style="border-left-color: #3b82f6;">
+                    <h4><i data-lucide="trending-up" style="width:16px;height:16px;display:inline;margin-bottom:-2px;"></i> 深化：現状の強みを極める場合</h4>
+                    <p>現在高く評価されている「${strongResults.length > 0 ? strongResults[0].name : '活気や雰囲気'}」をさらに伸ばすため、関連するコンテンツの頻度増加や、ロイヤルカスタマー向けの特別施策を展開することが有効です。</p>
+                </div>
+            `;
+
+            // Pattern 2: 進化 (Evolving / Fixing weaknesses)
+            weakCauses.forEach(weak => {
+                let action = "運用体制の見直しや設備のアップデートを検討してください。";
+                if(weak.name.includes('座る')) action = "可動式ベンチの追加導入や、日陰エリアでの滞留空間の創出が急務です。";
+                if(weak.name.includes('清潔')) action = "清掃頻度の増加や、ゴミ箱の配置見直しにより、美観の向上が必要です。";
+                if(weak.name.includes('飲食')) action = "キッチンカーの誘致や、ポップアップストアの展開により、飲食の選択肢を増やすことが有効です。";
+
+                html += `
+                    <div class="prescription-item" style="border-left-color: #f59e0b;">
+                        <h4><i data-lucide="alert-circle" style="width:16px;height:16px;display:inline;margin-bottom:-2px;"></i> 進化：弱点「${weak.name}」の改善</h4>
+                        <p>${action}</p>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        function drawRadar(canvasId, labels, datasetsData, chartRef, setRefCallback) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+
+            if (chartRef) {
+                chartRef.destroy();
+            }
+
+            Chart.defaults.color = '#94a3b8';
+            Chart.defaults.font.family = "'Outfit', -apple-system, sans-serif";
+
+            const datasets = datasetsData.map(ds => ({
+                label: ds.label,
+                data: ds.data,
+                backgroundColor: ds.color + '33', // 20% opacity
+                borderColor: ds.color,
+                pointBackgroundColor: ds.color,
+                borderWidth: 2
+            }));
+
+            const chart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            min: 0,
+                            max: 5,
+                            ticks: { display: false, stepSize: 1 },
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            angleLines: { color: 'rgba(255,255,255,0.1)' },
+                            pointLabels: { color: '#cbd5e1', font: { size: 11 } }
+                        }
+                    },
+                    plugins: { 
+                        legend: { 
+                            display: true, 
+                            position: 'bottom',
+                            labels: { color: '#cbd5e1', boxWidth: 12 }
+                        } 
+                    }
+                }
+            });
+
+            setRefCallback(chart);
+        }
+    </script>
+</body>
+</html>

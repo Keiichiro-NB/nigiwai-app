@@ -147,6 +147,17 @@
                     </select>
                 </div>
                 <div class="context-group">
+                    <label>時間</label>
+                    <select id="eval-time" class="context-input">
+                        <option value="">選択してください</option>
+                        <option value="午前">午前</option>
+                        <option value="昼">昼</option>
+                        <option value="午後">午後</option>
+                        <option value="夕方">夕方</option>
+                        <option value="夜">夜</option>
+                    </select>
+                </div>
+                <div class="context-group">
                     <label>天候 (外部要因)</label>
                     <select id="eval-weather" class="context-input">
                         <option value="晴">晴れ</option>
@@ -178,6 +189,7 @@
                     <i data-lucide="upload-cloud"></i> メディアファイルを選択
                 </label>
                 <input type="file" id="ai-media-upload" accept="video/*, image/*" style="display: none;" onchange="handleMediaUpload(this)">
+                <div id="upload-progress-bar" style="display:none;"></div>
                 
                 <div id="media-preview" style="display: none; margin-top: 16px; border: 1px dashed var(--border-color); padding: 12px; border-radius: 8px; text-align: center;">
                     <i data-lucide="video" style="width: 32px; height: 32px; color: #3b82f6; margin-bottom: 8px;"></i>
@@ -260,7 +272,7 @@
             const place = nigiwaiPlaces.find(p => p.id === selectedLocation);
             if (place && place.zones && place.zones.length > 0) {
                 zoneSelect.disabled = false;
-                zoneSelect.innerHTML = '<option value="">選択してください</option>';
+                zoneSelect.innerHTML = '<option value="">選択してください</option><option value="全体">全体</option>';
                 place.zones.forEach(zone => {
                     const option = document.createElement('option');
                     option.value = zone.id;
@@ -297,8 +309,16 @@
             container.innerHTML = html;
         }
 
+        function handleMediaUpload(input) {
+            if(input.files && input.files[0]) {
+                selectedAudioMock = { loaded: true };
+                document.getElementById('media-filename').innerText = input.files[0].name;
+                document.getElementById('media-preview').style.display = 'block';
+            }
+        }
+
         function initPersonas() {
-            const saved = localStorage.getItem('sys_personas');
+            const saved = localStorage.getItem('nigiwai_personas');
             const container = document.getElementById('personaListContainer');
             if (saved) {
                 aiPersonas = JSON.parse(saved);
@@ -311,10 +331,13 @@
                 aiPersonas.forEach((p, idx) => {
                     html += `
                         <label class="persona-card">
-                            <input type="checkbox" name="personaSelect" value="${p.id}" checked>
+                            <input type="checkbox" name="personaSelect" value="${p.id}" ${idx < 3 ? 'checked' : ''}>
                             <div>
                                 <div style="color: white; font-weight: 500;">${p.name}</div>
-                                <div style="color: #94a3b8; font-size: 12px; margin-top: 4px;">属性: ${p.sensitivity==='high'?'音量高を好む':'静けさを好む'} / 重視: ${p.indicator}</div>
+                                <div style="color: #94a3b8; font-size: 11px; margin-top: 4px; line-height: 1.3;">
+                                    ${p.attributes}<br>
+                                    <span style="opacity: 0.8; font-size: 10px;">${p.lifestyle.substring(0, 30)}...</span>
+                                </div>
                             </div>
                         </label>
                     `;
@@ -328,8 +351,9 @@
         function runAIEvaluation() {
             const placeId = document.getElementById('eval-location').value;
             const zoneId = document.getElementById('eval-zone').value;
-            if(!placeId || !zoneId) {
-                alert('場所とゾーンを選択してください。');
+            const time = document.getElementById('eval-time').value;
+            if(!placeId || !zoneId || !time) {
+                alert('場所、時間、ゾーンを選択してください。');
                 return;
             }
 
@@ -351,7 +375,7 @@
             document.getElementById('resultsSection').style.display = 'none';
 
             setTimeout(() => {
-                generateEvaluations(selectedPersonaIds, selectedAudioMock, placeId, zoneId, weather);
+                generateEvaluations(selectedPersonaIds, selectedAudioMock, placeId, zoneId, weather, time);
                 document.getElementById('loadingOverlay').style.display = 'none';
                 document.getElementById('resultsSection').style.display = 'block';
                 // 下までスクロール
@@ -360,13 +384,13 @@
         }
 
         // シミュレーターロジック
-        function generateEvaluations(personaIds, audio, placeId, zoneId, weather) {
+        function generateEvaluations(personaIds, audio, placeId, zoneId, weather, timeStr) {
             generatedEvaluations = [];
             const container = document.getElementById('resultsContainer');
             container.innerHTML = '';
             
             // 指標マスタを読み込み
-            const indicators = JSON.parse(localStorage.getItem('sys_indicators') || '[]');
+            const indicators = JSON.parse(localStorage.getItem('nigiwai_indicators') || '[]');
             
             // Placeのアセット情報を取得
             const place = nigiwaiPlaces.find(p => p.id === placeId);
@@ -390,18 +414,19 @@
                 }
 
                 // 指標とタイプによる微調整
-                if(persona.indicator === 'liveliness') { score += 0.5; comment += '（活気重視：賑わいを肯定的に評価）'; }
-                if(persona.indicator === 'quietness') { score -= 0.5; comment += '（静けさ重視：喧噪をややマイナス評価）'; }
+                if(persona.id % 2 === 0) { score += 0.5; comment += '（活気重視：賑わいを肯定的に評価）'; }
+                else { score -= 0.5; comment += '（静けさ重視：喧噪をややマイナス評価）'; }
 
                 // スコア丸め
                 score = Math.max(1, Math.min(5, score));
 
-                // モックの10項目レーティング生成 (cause 10 + result 10)
+                // モックのレーティング生成 (cause / effect)
                 const mockRatings = {};
-                for(let i=0; i<10; i++) {
-                    mockRatings[`cause-${i}`] = Math.max(1, Math.min(5, score + Math.floor(Math.random() * 3) - 1));
-                    mockRatings[`result-${i}`] = Math.max(1, Math.min(5, score + Math.floor(Math.random() * 3) - 1));
-                }
+                indicators.forEach(ind => {
+                    if (ind.category === 'representative' || ind.assetId === 'marche') {
+                        mockRatings[ind.id] = Math.max(1, Math.min(5, score + Math.floor(Math.random() * 3) - 1));
+                    }
+                });
 
                 // 総合スコア (平均の近似)
                 let avgScore = score;
@@ -410,13 +435,13 @@
                     id: 'eval_ai_' + Date.now() + Math.floor(Math.random()*1000),
                     timestamp: new Date().toISOString(), // 記録時刻
                     date: new Date().toISOString().split('T')[0],
-                    time: audio.time,
+                    time: timeStr,
                     weather: weather,
                     placeId: placeId,
                     zoneId: zoneId,
                     source: `AI (${persona.name})`,
                     ratings: mockRatings,
-                    comment: comment + `（${persona.purpose || '目的設定なし'}の視点より）`,
+                    comment: comment + `（詳細なペルソナ属性に基づいて評価）`,
                     avgScore: avgScore // プレビュー用
                 };
                 generatedEvaluations.push(evalData);

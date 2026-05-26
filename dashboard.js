@@ -21,9 +21,27 @@ function getZoneName(placeId, zoneId) {
     return zoneId;
 }
 
+function mapTimeCategory(timeStr) {
+    if(!timeStr) return '';
+    if(['午前', '昼', '午後', '夕方', '夜'].includes(timeStr)) return timeStr;
+    const match = timeStr.match(/^(\d{1,2}):/);
+    if(match) {
+        const h = parseInt(match[1], 10);
+        if(h >= 5 && h < 11) return '午前';
+        if(h >= 11 && h < 14) return '昼';
+        if(h >= 14 && h < 17) return '午後';
+        if(h >= 17 && h < 19) return '夕方';
+        return '夜';
+    }
+    return timeStr;
+}
+
 function renderDashboard() {
     const places = JSON.parse(localStorage.getItem('sys_places') || '[]');
     const evals = JSON.parse(localStorage.getItem('sys_evaluations') || '[]');
+    
+    // 時間の互換性マッピング
+    evals.forEach(ev => ev.time = mapTimeCategory(ev.time));
     
     // Summary Cards
     const elPlaceCount = document.querySelector('.summary-cards .card:nth-child(1) .number');
@@ -84,7 +102,7 @@ function renderDashboard() {
         tr.onclick = () => openL2(row);
         
         tr.innerHTML = `
-            <td style="padding: 12px 16px;">${getPlaceName(row.placeId)}</td>
+            <td style="padding: 12px 16px;">${row.placeId}</td>
             <td style="padding: 12px 16px;">${row.date} ${row.time}</td>
             <td style="padding: 12px 16px;">${getZoneName(row.placeId, row.zoneId)}</td>
             <td style="padding: 12px 16px; font-weight: bold; color: #3b82f6;">${avgTotal}</td>
@@ -108,7 +126,7 @@ function openL2(rowData) {
     };
 
     document.getElementById('l2-detail-section').style.display = 'block';
-    document.getElementById('l2-title-target').innerText = `${getPlaceName(rowData.placeId)} - 詳細分析`;
+    document.getElementById('l2-title-target').innerText = `${rowData.placeId} - 詳細分析`;
     
     initL2Filters();
     renderL2ChartsAndScores();
@@ -119,6 +137,23 @@ function openL2(rowData) {
 
 function closeL2() {
     document.getElementById('l2-detail-section').style.display = 'none';
+}
+
+function openChartModal() {
+    document.getElementById('chart-modal').style.display = 'flex';
+    lucide.createIcons();
+    // Re-render so Chart.js recalculates dimensions on visible canvases
+    renderL2ChartsAndScores();
+}
+
+function closeChartModal() {
+    document.getElementById('chart-modal').style.display = 'none';
+}
+
+function openInsightReport() {
+    if(currentL2Data && currentL2Data.placeId) {
+        window.location.href = 'insight_report.html?placeId=' + currentL2Data.placeId;
+    }
 }
 
 function initL2Filters() {
@@ -156,7 +191,23 @@ function initL2Filters() {
         return e.source;
     }))].filter(Boolean);
     const elEval = document.getElementById('l2-filter-evaluator');
-    elEval.innerHTML = '<option value="all" style="color: black;">全員 (Human + AI)</option>';
+    elEval.innerHTML = '';
+    
+    // Default options
+    const defaultOptions = [
+        { value: 'all', text: '全員 (Human + AI)' },
+        { value: 'all_human', text: '全員 (Human)' },
+        { value: 'all_ai', text: '全員 (AI)' }
+    ];
+    
+    defaultOptions.forEach(optData => {
+        const opt = document.createElement('option');
+        opt.value = optData.value;
+        opt.text = optData.text;
+        opt.style.color = 'black';
+        elEval.appendChild(opt);
+    });
+
     evaluators.forEach(e => {
         const opt = document.createElement('option');
         opt.value = e;
@@ -187,27 +238,41 @@ function renderL2ChartsAndScores() {
         filteredEvals = filteredEvals.filter(e => selectedSections.includes(`${e.date}_${e.time}`));
     }
     if (selectedEvaluator !== 'all') {
-        filteredEvals = filteredEvals.filter(e => {
-            const evName = (e.source === 'Human' && e.evaluator_name) ? e.evaluator_name : e.source;
-            return evName === selectedEvaluator;
-        });
+        if (selectedEvaluator === 'all_human') {
+            filteredEvals = filteredEvals.filter(e => e.source === 'Human');
+        } else if (selectedEvaluator === 'all_ai') {
+            filteredEvals = filteredEvals.filter(e => e.source && e.source.startsWith('AI'));
+        } else {
+            filteredEvals = filteredEvals.filter(e => {
+                const evName = (e.source === 'Human' && e.evaluator_name) ? e.evaluator_name : e.source;
+                return evName === selectedEvaluator;
+            });
+        }
     }
     
     currentL2Data.filteredEvals = filteredEvals;
     
-    const indicators = JSON.parse(localStorage.getItem('sys_indicators') || '[]');
-    // 動的表示：その対象地のアセットに紐づく指標のみ（L2はフィルタされたデータなので、対象地アセットでフィルタする）
+    const indicators = JSON.parse(localStorage.getItem('nigiwai_indicators') || '[]');
+    // 動的表示：その対象地のアセットに紐づく指標のみ
+    indicators.forEach(ind => {
+        if (ind.assetId === 'marche') ind.assetId = ['マルシェ'];
+        else if (typeof ind.assetId === 'string' && ind.assetId !== 'all') ind.assetId = [ind.assetId];
+    });
+    
     const place = JSON.parse(localStorage.getItem('sys_places') || '[]').find(p => p.id === currentL2Data.placeId);
     const assetType = place ? place.asset : '';
 
     const validIndicators = indicators.filter(ind => {
-        if(ind.isRepresentative) return true;
-        if(assetType && ind.assets && ind.assets.includes(assetType)) return true;
+        if(ind.category === 'representative' || ind.assetId === 'all') return true;
+        if(assetType) {
+            if(Array.isArray(ind.assetId)) return ind.assetId.includes(assetType);
+            return ind.assetId === assetType;
+        }
         return false;
     });
 
     const causeInds = validIndicators.filter(i => i.type === 'cause');
-    const resultInds = validIndicators.filter(i => i.type === 'result');
+    const resultInds = validIndicators.filter(i => i.type === 'result' || i.type === 'effect');
     
     const causeScores = {};
     const resultScores = {};
@@ -230,22 +295,53 @@ function renderL2ChartsAndScores() {
     // Calc Averages
     const getAvg = (vals) => vals.length > 0 ? (vals.reduce((a,b)=>a+b,0) / vals.length) : 0;
     
-    const causeLabels = causeInds.map(i => i.name);
+    const causeLabels = causeInds.map(i => String(i.id).padStart(2, '0'));
     const causeData = causeInds.map(i => getAvg(causeScores[i.id].vals));
     
-    const resultLabels = resultInds.map(i => i.name);
+    const resultLabels = resultInds.map(i => String(i.id).padStart(2, '0'));
     const resultData = resultInds.map(i => getAvg(resultScores[i.id].vals));
 
     // Render Charts
     drawRadar('causeRadarChart', causeLabels, causeData, '#10b981', causeRadarChart);
     drawRadar('resultRadarChart', resultLabels, resultData, '#8b5cf6', resultRadarChart);
 
+    // Also render to modal if present
+    drawRadar('causeRadarChartModal', causeLabels, causeData, '#10b981', window.causeRadarChartModal, true);
+    drawRadar('resultRadarChartModal', resultLabels, resultData, '#8b5cf6', window.resultRadarChartModal, true);
+
+    // Render Legends
+    renderLegend('cause-legend-container', causeInds);
+    renderLegend('result-legend-container', resultInds);
+
+    // Modal Legends
+    renderLegend('cause-legend-container-modal', causeInds);
+    renderLegend('result-legend-container-modal', resultInds);
+
     // Render Score UI for inline editing
     renderScoreEditors('cause-scores-container', causeInds, causeScores);
     renderScoreEditors('result-scores-container', resultInds, resultScores);
 }
 
-function drawRadar(canvasId, labels, data, color, chartInstanceRef) {
+function renderLegend(containerId, inds) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = '';
+    
+    const isModal = containerId.includes('modal');
+    const numColor = isModal ? '#94a3b8' : '#cbd5e1';
+    const textColor = isModal ? '#334155' : 'inherit';
+    
+    inds.forEach(ind => {
+        const idStr = String(ind.id).padStart(2, '0');
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.gap = '8px';
+        row.innerHTML = `<span style="color: ${numColor}; font-family: monospace; font-weight: bold;">${idStr}</span> <span style="color: ${textColor};">${ind.name}</span>`;
+        container.appendChild(row);
+    });
+}
+
+function drawRadar(canvasId, labels, data, color, chartInstanceRef, isModal = false) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -254,7 +350,7 @@ function drawRadar(canvasId, labels, data, color, chartInstanceRef) {
         window[canvasId + '_instance'].destroy();
     }
 
-    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.color = isModal ? '#64748b' : '#94a3b8';
     Chart.defaults.font.family = "'Outfit', -apple-system, sans-serif";
 
     window[canvasId + '_instance'] = new Chart(ctx, {
@@ -264,7 +360,7 @@ function drawRadar(canvasId, labels, data, color, chartInstanceRef) {
             datasets: [{
                 label: '平均スコア',
                 data: data,
-                backgroundColor: color + '33', // 20% opacity
+                backgroundColor: color + (isModal ? '1a' : '33'), // lighter fill on white
                 borderColor: color,
                 pointBackgroundColor: color,
                 borderWidth: 2
@@ -278,9 +374,9 @@ function drawRadar(canvasId, labels, data, color, chartInstanceRef) {
                     min: 0,
                     max: 5,
                     ticks: { display: false, stepSize: 1 },
-                    grid: { color: 'rgba(255,255,255,0.1)' },
-                    angleLines: { color: 'rgba(255,255,255,0.1)' },
-                    pointLabels: { color: '#cbd5e1', font: { size: 11 } }
+                    grid: { color: isModal ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' },
+                    angleLines: { color: isModal ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' },
+                    pointLabels: { color: isModal ? '#64748b' : '#cbd5e1', font: { size: 11 } }
                 }
             },
             plugins: { legend: { display: false } }
@@ -305,8 +401,9 @@ function renderScoreEditors(containerId, inds, scoreDataMap) {
         row.style.background = 'rgba(0,0,0,0.2)';
         row.style.borderRadius = '6px';
         
+        const idStr = String(ind.id).padStart(2, '0');
         row.innerHTML = `
-            <span style="font-size: 13px; color: #e2e8f0;">${ind.name}</span>
+            <span style="font-size: 13px; color: #e2e8f0;"><span style="color: #cbd5e1; font-family: monospace; font-weight: bold; margin-right: 6px;">${idStr}</span>${ind.name}</span>
             <div style="display: flex; align-items: center; gap: 8px;">
                 <span style="font-size: 12px; color: var(--text-secondary);">平均:</span>
                 <input type="number" step="0.1" min="1" max="5" value="${avg !== '-' ? avg : ''}" 
