@@ -267,6 +267,19 @@
         <div id="tab-api" class="tab-pane">
             <div class="settings-section" id="api-section">
 
+                <h3><i data-lucide="sparkles"></i> AIペルソナ用 API連携設定 (Gemini)</h3>
+                <p style="font-size: 13px; color: var(--admin-muted); margin-bottom: 24px; line-height: 1.6;">
+                    AIペルソナの評価シミュレーションに利用する Gemini 1.5 Pro のAPIキーを設定します。<br>
+                    ※ セキュリティ保護のため、キーはお使いのブラウザ (LocalStorage) 内にのみ保存されます。
+                </p>
+                <div class="form-group">
+                    <label>Gemini API Key</label>
+                    <input type="password" id="geminiApiKey" placeholder="AIzaSy...">
+                    <div class="help-text">Google AI Studioで取得したAPIキーを入力してください。</div>
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid var(--admin-border); margin: 30px 0;">
+
                 <h3><i data-lucide="mic"></i> Auphonic API 連携設定</h3>
                 <p style="font-size: 13px; color: var(--admin-muted); margin-bottom: 24px; line-height: 1.6;">
                     音声解析機能を利用するためのAPIキーを設定します。<br>
@@ -744,6 +757,7 @@
             localStorage.setItem('nigiwai_personas', JSON.stringify(cleanPersonas));
 
             // API連携
+            localStorage.setItem('gemini_api_key', document.getElementById('geminiApiKey').value);
             localStorage.setItem('auphonic_api_key', document.getElementById('auphonicKey').value);
             localStorage.setItem('auphonic_preset_id', document.getElementById('auphonicPreset').value);
             localStorage.setItem('auphonic_webhook_url', document.getElementById('webhookUrl').value);
@@ -759,11 +773,13 @@
         // LocalStorageからの読み込み処理
         function loadSettings() {
             // API連携
+            const geminiApiKey = localStorage.getItem('gemini_api_key');
             const apiKey = localStorage.getItem('auphonic_api_key');
             const presetId = localStorage.getItem('auphonic_preset_id');
             const webhookUrl = localStorage.getItem('auphonic_webhook_url');
             const backupInt = localStorage.getItem('sys_backup_interval');
             
+            if(geminiApiKey) document.getElementById('geminiApiKey').value = geminiApiKey;
             if(apiKey) document.getElementById('auphonicKey').value = apiKey;
             if(presetId) document.getElementById('auphonicPreset').value = presetId;
             if(webhookUrl) document.getElementById('webhookUrl').value = webhookUrl;
@@ -823,6 +839,7 @@
                 localStorage.clear(); // すべてクリア
                 
                 // フォームのリセット (初期値へ戻す)
+                document.getElementById('geminiApiKey').value = '';
                 document.getElementById('auphonicKey').value = '';
                 document.getElementById('auphonicPreset').value = '';
                 document.getElementById('webhookUrl').value = 'https://nigiwai-app.local/webhook/auphonic';

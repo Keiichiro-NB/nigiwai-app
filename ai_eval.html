@@ -34,24 +34,6 @@
             justify-content: center;
             font-size: 14px;
         }
-        .audio-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .audio-item {
-            background: #0f172a;
-            border: 1px solid #334155;
-            border-radius: 8px;
-            padding: 12px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .audio-item:hover { border-color: #64748b; }
-        .audio-item input[type="radio"] { margin: 0; }
         .persona-grid {
             display: grid;
             grid-template-columns: 1fr;
@@ -80,17 +62,6 @@
             display: flex;
             align-items: center;
             gap: 8px;
-        }
-        .eval-score {
-            font-size: 24px;
-            font-weight: 700;
-            color: #fff;
-            margin-bottom: 12px;
-        }
-        .eval-comment {
-            font-size: 14px;
-            line-height: 1.6;
-            color: #cbd5e1;
         }
         .btn-ai-run {
             background: linear-gradient(135deg, #8b5cf6, #6366f1);
@@ -133,10 +104,9 @@
 
     <div style="padding: 20px;">
         <p style="color: #94a3b8; font-size: 14px; margin-bottom: 24px; line-height: 1.5;">
-            収集・解析済みの音響データに対し、登録されたAIペルソナを用いて多角的な自動評価を行います。
+            アップロードされた動画や画像メディアに対し、登録されたAIペルソナを用いて空間の多角的な自動シミュレーション評価を行います。
         </p>
 
-        <!-- Step 1 -->
         <div class="step-section">
             <div class="step-title"><span class="badge">1</span> 評価対象の設定</div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
@@ -160,6 +130,7 @@
                 <div class="context-group">
                     <label>天候 (外部要因)</label>
                     <select id="eval-weather" class="context-input">
+                        <option value="">選択してください</option>
                         <option value="晴">晴れ</option>
                         <option value="曇">曇り</option>
                         <option value="雨">雨</option>
@@ -169,37 +140,34 @@
             </div>
             <div class="context-group full-width">
                 <label>セクション・ゾーン</label>
-                <select id="eval-zone" class="context-input" disabled onchange="loadMockAudioData()">
+                <select id="eval-zone" class="context-input" disabled>
                     <option value="">場所を選択してください</option>
                 </select>
             </div>
         </div>
 
-        <!-- Step 2 -->
         <div class="step-section">
-            <div class="step-title"><span class="badge">2</span> 評価データの選択 (動画/画像)</div>
+            <div class="step-title"><span class="badge">2</span> 評価データの選択 (動画必須・画像任意)</div>
             <p style="color: #64748b; font-size: 13px; margin-bottom: 16px;">
-                ※ 動画データ（最大5分程度）や画像をアップロードしてください。<br>
-                <strong style="color: #3b82f6;">【AI（Gemini）解析プロンプト制約】</strong><br>
-                「動画の開始・中間・終了の各30秒を重点サンプリングして、設定されたペルソナ属性に基づいて多角的に評価せよ」
+                <span style="color: #ef4444; font-weight: bold;">【入力推奨】</span> 空間全体の雰囲気が伝わる動画をプライマリとし、看板やメニュー補完用の写真を複数追加可能です。<br>
+                <strong style="color: #3b82f6;">【Gemini マルチモーダル解析制約】</strong><br>
+                「動画の映像ピクセルおよび音声テキストから、ペルソナの属性（価値観・身体特性）に基づき24の指標を厳格に推計せよ」
             </p>
             
             <div class="image-upload-area" style="margin-bottom: 12px;">
                 <label for="ai-media-upload" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
-                    <i data-lucide="upload-cloud"></i> メディアファイルを選択
+                    <i data-lucide="upload-cloud"></i> メディアファイルを選択 (複数可)
                 </label>
-                <input type="file" id="ai-media-upload" accept="video/*, image/*" style="display: none;" onchange="handleMediaUpload(this)">
+                <input type="file" id="ai-media-upload" accept="video/*, image/*" multiple style="display: none;" onchange="handleMediaUpload(this)">
                 <div id="upload-progress-bar" style="display:none;"></div>
                 
                 <div id="media-preview" style="display: none; margin-top: 16px; border: 1px dashed var(--border-color); padding: 12px; border-radius: 8px; text-align: center;">
-                    <i data-lucide="video" style="width: 32px; height: 32px; color: #3b82f6; margin-bottom: 8px;"></i>
-                    <div id="media-filename" style="color: white; font-weight: 500; font-size: 14px;"></div>
-                    <div style="color: #94a3b8; font-size: 12px; margin-top: 4px;">アップロード完了（解析準備OK）</div>
+                    <div id="media-filename-list" style="color: white; font-weight: 500; font-size: 14px; text-align: left; line-height: 1.6; margin-bottom: 8px;"></div>
+                    <div style="color: #94a3b8; font-size: 12px; margin-top: 4px;"><i data-lucide="check-circle" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px; color: #10b981;"></i>アップロード完了（解析準備OK）</div>
                 </div>
             </div>
         </div>
 
-        <!-- Step 3 -->
         <div class="step-section">
             <div class="step-title"><span class="badge">3</span> AIペルソナの選択</div>
             <div id="personaListContainer" class="persona-grid">
@@ -211,22 +179,20 @@
             <i data-lucide="cpu"></i> AI評価を実行する
         </button>
 
-        <!-- Results -->
         <div id="resultsSection" style="display: none; margin-top: 32px;">
             <h3 style="color: white; margin-bottom: 16px;"><i data-lucide="check-circle-2" style="color: #10b981;"></i> 評価プレビュー</h3>
             <div id="resultsContainer"></div>
             
-            <button class="btn-submit" onclick="saveToDB()" style="margin-top: 24px;">
-                <i data-lucide="database"></i> この内容でDBに登録する
+            <button class="btn-submit" onclick="saveToDB()" style="margin-top: 24px; width: 100%;">
+                <i data-lucide="database"></i> この内容をデータベースに登録して同期
             </button>
         </div>
     </div>
 
-    <!-- Loading -->
     <div id="loadingOverlay" class="loading-overlay">
         <i data-lucide="loader-2" style="width: 48px; height: 48px; color: #8b5cf6; animation: spin 1s linear infinite; margin-bottom: 16px;"></i>
         <h3 style="margin: 0; margin-bottom: 8px;">AIが分析中...</h3>
-        <p style="color: #94a3b8; font-size: 14px;">音響データとペルソナ属性を照合しています</p>
+        <p style="color: #94a3b8; font-size: 14px;">マルチモーダルデータとペルソナ属性をクロス解析しています</p>
     </div>
     <style>@keyframes spin { 100% { transform: rotate(360deg); } }</style>
 
@@ -263,57 +229,38 @@
             const zoneSelect = document.getElementById('eval-zone');
             const selectedLocation = locationSelect.value;
             
-            zoneSelect.innerHTML = '<option value="">場所を選択してください</option>';
+            zoneSelect.innerHTML = '<option value="">選択してください</option>';
             zoneSelect.disabled = true;
-            document.getElementById('audioDataContainer').innerHTML = '<p style="color: #64748b; font-size: 13px;">対象ゾーンを選択すると解析済みデータが表示されます。</p>';
             
             if (!selectedLocation) return;
 
             const place = nigiwaiPlaces.find(p => p.id === selectedLocation);
-            if (place && place.zones && place.zones.length > 0) {
+            if (place) {
                 zoneSelect.disabled = false;
                 zoneSelect.innerHTML = '<option value="">選択してください</option><option value="全体">全体</option>';
-                place.zones.forEach(zone => {
-                    const option = document.createElement('option');
-                    option.value = zone.id;
-                    option.textContent = zone.name;
-                    zoneSelect.appendChild(option);
-                });
+                if (place.zones && place.zones.length > 0) {
+                    place.zones.forEach(zone => {
+                        const option = document.createElement('option');
+                        option.value = zone.name; 
+                        option.textContent = zone.name;
+                        zoneSelect.appendChild(option);
+                    });
+                }
             }
         }
 
-        function loadMockAudioData() {
-            const zoneId = document.getElementById('eval-zone').value;
-            const container = document.getElementById('audioDataContainer');
-            if(!zoneId) return;
-
-            // デモ用の解析済みモックデータ
-            const mockData = [
-                { id: 'audio_1', time: '12:00', db: 68, type: '活気あり (話し声多数)' },
-                { id: 'audio_2', time: '14:30', db: 52, type: '静か (足音のみ)' },
-                { id: 'audio_3', time: '18:00', db: 75, type: '騒がしい (BGMと歓声)' }
-            ];
-
-            let html = '';
-            mockData.forEach((data, idx) => {
-                html += `
-                    <label class="audio-item">
-                        <input type="radio" name="audioSelect" value='${JSON.stringify(data)}' ${idx===0 ? 'checked' : ''}>
-                        <div>
-                            <div style="color: white; font-weight: 500;">本日のデータ - ${data.time}</div>
-                            <div style="color: #94a3b8; font-size: 12px; margin-top: 4px;">音量レベル: ${data.db}dB / 特徴: ${data.type}</div>
-                        </div>
-                    </label>
-                `;
-            });
-            container.innerHTML = html;
-        }
-
         function handleMediaUpload(input) {
-            if(input.files && input.files[0]) {
+            if(input.files && input.files.length > 0) {
                 selectedAudioMock = { loaded: true };
-                document.getElementById('media-filename').innerText = input.files[0].name;
+                const listContainer = document.getElementById('media-filename-list');
+                listContainer.innerHTML = '';
+                Array.from(input.files).forEach(file => {
+                    const isVideo = file.type.startsWith('video/');
+                    const icon = isVideo ? '🎥' : '🖼️';
+                    listContainer.innerHTML += `<div style="margin-bottom: 4px;">${icon} ${file.name}</div>`;
+                });
                 document.getElementById('media-preview').style.display = 'block';
+                lucide.createIcons();
             }
         }
 
@@ -348,12 +295,14 @@
             }
         }
 
-        function runAIEvaluation() {
+        async function runAIEvaluation() {
             const placeId = document.getElementById('eval-location').value;
             const zoneId = document.getElementById('eval-zone').value;
             const time = document.getElementById('eval-time').value;
-            if(!placeId || !zoneId || !time) {
-                alert('場所、時間、ゾーンを選択してください。');
+            const weather = document.getElementById('eval-weather').value;
+
+            if(!placeId || !time || !weather || !zoneId) {
+                alert('場所、時間、天候、セクション・ゾーンをすべて選択してください。');
                 return;
             }
 
@@ -362,99 +311,212 @@
                 return;
             }
 
-            const weather = document.getElementById('eval-weather').value;
-
             const selectedPersonaIds = Array.from(document.querySelectorAll('input[name="personaSelect"]:checked')).map(cb => cb.value);
             if(selectedPersonaIds.length === 0) {
                 alert('少なくとも1つのAIペルソナを選択してください。');
                 return;
             }
 
-            // ローディング表示
             document.getElementById('loadingOverlay').style.display = 'flex';
             document.getElementById('resultsSection').style.display = 'none';
 
-            setTimeout(() => {
-                generateEvaluations(selectedPersonaIds, selectedAudioMock, placeId, zoneId, weather, time);
+            try {
+                await generateEvaluations(selectedPersonaIds, placeId, zoneId, weather, time);
                 document.getElementById('loadingOverlay').style.display = 'none';
                 document.getElementById('resultsSection').style.display = 'block';
-                // 下までスクロール
                 window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-            }, 2000); // 2秒間のAI思考演出
+            } catch (e) {
+                console.error(e);
+                alert('評価中にエラーが発生しました。');
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }
         }
 
-        // シミュレーターロジック
-        function generateEvaluations(personaIds, audio, placeId, zoneId, weather, timeStr) {
+        async function generateEvaluations(personaIds, placeId, zoneId, weather, timeStr) {
             generatedEvaluations = [];
             const container = document.getElementById('resultsContainer');
             container.innerHTML = '';
             
-            // 指標マスタを読み込み
             const indicators = JSON.parse(localStorage.getItem('nigiwai_indicators') || '[]');
-            
-            // Placeのアセット情報を取得
             const place = nigiwaiPlaces.find(p => p.id === placeId);
-            const assetType = place ? place.asset : '';
+            const finalPlaceName = place ? place.name : placeId; 
+            const assetType = place ? place.asset : 'マルシェ';
+            
+            const geminiApiKey = localStorage.getItem('gemini_api_key');
+            if (geminiApiKey) {
+                console.log('Gemini APIを利用して評価を実行します...');
+                // --- 明日のAPI連携用：骨組み（System Instruction / User Prompt変数構築） ---
+                /*
+                const systemInstruction = `あなたは街や空間の”にぎわい”を可視化・評価するソリューションの「シニアAIエージェント」です。提供される動画および写真を解析し、指定された「AIペルソナ」なりきって、主観的かつ多角的な空間評価を行ってください。単なる物体検知（人数カウント等）ではなく、その空間に流れる「空気感」「活気」「ストレス」「心地よさ」を、ペルソナの価値観フィルターを通して言語化・数値化することが任務です。`;
+                const causeNames = indicators.filter(ind => ind.type === 'cause').map(ind => `・[${ind.id}] ${ind.name}`).join('\\n');
+                const resultNames = indicators.filter(ind => ind.type === 'effect').map(ind => `・[${ind.id}] ${ind.name}`).join('\\n');
+                */
+            } else {
+                console.log('APIキーが未登録です。本日はテスト用高精度モックモードで実行します。');
+                container.innerHTML = '<div style="color: #64748b; font-size: 13px; margin-bottom: 16px;">※APIキー未登録のため、テスト用高精度モックモードで実行しています。</div>';
+            }
 
-            personaIds.forEach(pId => {
-                const persona = aiPersonas.find(p => p.id === pId);
-                if(!persona) return;
+            await new Promise(r => setTimeout(r, 2000));
 
-                // 評価ロジックの簡易シミュレーション
-                let score = 3; // base score
-                let comment = '';
+            for (const pId of personaIds) {
+                const persona = aiPersonas.find(p => p.id == pId);
+                if(!persona) continue;
 
-                // 天候による評価影響シミュレーション
-                if(weather === '雨' || weather === '雪') {
-                    score -= 0.5;
-                    comment += `天候が${weather}のため、全体的に活気は控えめでした。`;
-                } else if(weather === '晴') {
-                    score += 0.5;
-                    comment += `晴天で人出が多く、ポジティブな雰囲気が感じられました。`;
+                let score = 3; 
+                let scoreModifier = 0;
+                
+                if(weather === '雨' || weather === '雪') score -= 0.5;
+                else if(weather === '晴') score += 0.5;
+
+                const isZGen = persona.name.includes('Z世代') || persona.name.includes('若者') || persona.attributes?.includes('若');
+                const isFamily = persona.name.includes('ファミリー') || persona.name.includes('家族') || persona.attributes?.includes('子');
+
+                if (isZGen) scoreModifier += 1.0;
+                else if (isFamily) scoreModifier -= 0.5;
+                else if (persona.id % 2 === 0) scoreModifier += 0.5;
+                else scoreModifier -= 0.5;
+
+                score = Math.max(1, Math.min(5, score + scoreModifier));
+
+                const mockRatings = {};
+                let sum = 0;
+                let count = 0;
+
+                let causeHtml = `
+                            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; table-layout: fixed;">
+                                <thead>
+                                    <tr style="color: #60a5fa; border-bottom: 1px solid #334155;">
+                                        <th style="padding: 8px 4px; width: 8%;">#</th>
+                                        <th style="padding: 8px 4px; width: 22%;">指標</th>
+                                        <th style="padding: 8px 4px; width: 15%;">点数</th>
+                                        <th style="padding: 8px 4px; width: 55%;">根拠（主観感想）</th>
+                                    </tr>
+                                </thead>
+                                <tbody>`;
+                let resultHtml = `
+                            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; table-layout: fixed;">
+                                <thead>
+                                    <tr style="color: #60a5fa; border-bottom: 1px solid #334155;">
+                                        <th style="padding: 8px 4px; width: 8%;">#</th>
+                                        <th style="padding: 8px 4px; width: 22%;">指標</th>
+                                        <th style="padding: 8px 4px; width: 15%;">点数</th>
+                                        <th style="padding: 8px 4px; width: 55%;">根拠（主観感想）</th>
+                                    </tr>
+                                </thead>
+                                <tbody>`;
+                let combinedComment = ``;
+
+                let firstImpression = '';
+                if (isZGen) {
+                    firstImpression = '人が多くて活気があり、とてもワクワクする空間です。映えるスポットや楽しそうなコンテンツが多く、思わずシェアしたくなります！';
+                } else if (isFamily) {
+                    firstImpression = '少し人が多くてベビーカーでの移動が大変でした。もう少し落ち着いて休憩できる安全なスペースや、子供への配慮があると嬉しいです。';
+                } else {
+                    if (weather === '晴') firstImpression = '天気が良く、活発に動く人々の様子が好印象でした。全体的にターゲット層に配慮された空間設計がなされています。';
+                    else firstImpression = '天候のせいか少し足早に通り過ぎる人が多く、やや落ち着いた雰囲気です。全体的にターゲット層に配慮された空間設計がなされています。';
                 }
 
-                // 指標とタイプによる微調整
-                if(persona.id % 2 === 0) { score += 0.5; comment += '（活気重視：賑わいを肯定的に評価）'; }
-                else { score -= 0.5; comment += '（静けさ重視：喧噪をややマイナス評価）'; }
+                combinedComment += `【第一印象】\n${firstImpression}\n\n`;
+                combinedComment += `【原因レイヤー】\n`;
 
-                // スコア丸め
-                score = Math.max(1, Math.min(5, score));
+                let resultLayerComment = `\n【結果レイヤー】\n`;
+                let causeCount = 1;
+                let resultCount = 1;
 
-                // モックのレーティング生成 (cause / effect)
-                const mockRatings = {};
                 indicators.forEach(ind => {
-                    if (ind.category === 'representative' || ind.assetId === 'marche') {
-                        mockRatings[ind.id] = Math.max(1, Math.min(5, score + Math.floor(Math.random() * 3) - 1));
+                    if (ind.category === 'representative' || ind.assetId === assetType || ind.assetId === 'marche') {
+                        let val = score;
+                        let reason = "";
+
+                        if (ind.name.includes('賑わい') || ind.name.includes('活気') || ind.name.includes('交流') || ind.name.includes('イベント') || ind.name.includes('回遊') || ind.name.includes('店舗')) {
+                            val = isZGen ? Math.min(5, score + 1) : (isFamily ? Math.max(1, score - 1) : score);
+                            if (isZGen) reason = "人がいっぱい集まってて超アツい！お店の並びも密度高めで、歩いてるだけでワクワク感がヤバい！";
+                            else if (isFamily) reason = "通路が狭い上に人が密集しすぎていて、ベビーカーでの移動が本当に大変。回遊どころではなくてドッと疲れます…";
+                            else reason = "周囲に人が多く集まっており、全体的にポジティブでエネルギッシュな空気感を感じて、つい足を止めてしまいます。";
+                        } else if (ind.name.includes('静けさ') || ind.name.includes('安全') || ind.name.includes('清潔') || ind.name.includes('休憩') || ind.name.includes('自然')) {
+                            val = isFamily ? Math.min(5, score + 1) : (isZGen ? Math.max(1, score - 1) : score);
+                            if (isFamily) reason = "子供がぐずったときにサッと座らせて水分補給できるような、安全で広い休憩ベンチが用意されているのはすごく助かる！";
+                            else if (isZGen) reason = "座ってちょっとスマホいじったりチルできるベンチが少なすぎて、タイパ重視の私としては長居しづらいな〜";
+                            else reason = "程よく落ち着けるスペースが確保されていて、自分のペースで安心して過ごせる環境が整っているのが心地いいですね。";
+                        } else {
+                            val = Math.max(1, Math.min(5, score + Math.floor(Math.random() * 3) - 1));
+                            if (isZGen) reason = `私のスタイル（${persona.attributes}）からすると、ぶっちゃけこれくらいが普通かなって感じ。`;
+                            else if (isFamily) reason = `うちの家族の状況（${persona.attributes}）を考えると、特段不満もなく過ごせるレベルかなと思いますね。`;
+                            else reason = `私の価値観（${persona.attributes}）から見ると、ごく一般的な印象で、特に違和感はありません。`;
+                        }
+                        mockRatings[String(ind.id)] = val;
+                        sum += val;
+                        count++;
+
+                        const lineText = `・[${ind.name}] : ${val}点（${reason}）\n`;
+                        
+                        let trNum = ind.type === 'cause' ? causeCount++ : resultCount++;
+                        let rowHtml = `
+                                    <tr style="border-bottom: 1px solid #1e293b;">
+                                        <td style="padding: 8px 4px; vertical-align: top; color: #94a3b8;">${trNum}</td>
+                                        <td style="padding: 8px 4px; vertical-align: top; font-weight: 500;">${ind.name}</td>
+                                        <td style="padding: 8px 4px; vertical-align: top;"><span style="background: rgba(59, 130, 246, 0.2); color: #93c5fd; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${val}</span></td>
+                                        <td style="padding: 8px 4px; vertical-align: top; opacity: 0.9; line-height: 1.4;">${reason}</td>
+                                    </tr>`;
+
+                        if (ind.type === 'cause') {
+                            combinedComment += lineText;
+                            causeHtml += rowHtml;
+                        } else {
+                            resultLayerComment += lineText;
+                            resultHtml += rowHtml;
+                        }
                     }
                 });
-
-                // 総合スコア (平均の近似)
-                let avgScore = score;
+                
+                causeHtml += `</tbody></table>`;
+                resultHtml += `</tbody></table>`;
+                
+                combinedComment += resultLayerComment;
+                const avgScore = count > 0 ? (sum / count) : score;
 
                 const evalData = {
                     id: 'eval_ai_' + Date.now() + Math.floor(Math.random()*1000),
-                    timestamp: new Date().toISOString(), // 記録時刻
+                    timestamp: new Date().toISOString(),
                     date: new Date().toISOString().split('T')[0],
                     time: timeStr,
                     weather: weather,
-                    placeId: placeId,
+                    placeId: finalPlaceName, 
                     zoneId: zoneId,
                     source: `AI (${persona.name})`,
                     ratings: mockRatings,
-                    comment: comment + `（詳細なペルソナ属性に基づいて評価）`,
-                    avgScore: avgScore // プレビュー用
+                    comment: combinedComment, 
+                    avgScore: avgScore
                 };
                 generatedEvaluations.push(evalData);
 
-                // UI生成
                 container.innerHTML += `
-                    <div class="eval-result-card">
-                        <h4><i data-lucide="bot"></i> ${persona.name}</h4>
-                        <div class="eval-score">推計スコア: ${avgScore.toFixed(1)} / 5.0</div>
-                        <div class="eval-comment">"${evalData.comment}"</div>
+                    <div class="eval-result-card" style="font-size: 13px; line-height: 1.5; color: #cbd5e1; background: #0f172a; border: 1px solid #3b82f6; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                        <h4 style="font-size: 16px; margin-bottom: 8px; color: #60a5fa; display: flex; align-items: center; gap: 8px;"><i data-lucide="bot"></i> ${persona.name}</h4>
+                        <div style="font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 12px; border-bottom: 1px solid #334155; padding-bottom: 8px;">推計満足度: ${avgScore.toFixed(1)} / 5.0</div>
+                        
+                        <div style="margin-bottom: 16px;">
+                            <strong style="color: #60a5fa; font-size: 14px;">【第一印象】</strong><br>
+                            ${firstImpression}
+                        </div>
+                        
+                        <div style="margin-bottom: 16px;">
+                            <strong style="color: #60a5fa; font-size: 14px;">【原因レイヤー (環境・仕掛け)】</strong><br>
+                            ${causeHtml}
+                        </div>
+                        
+                        <div style="margin-bottom: 16px;">
+                            <strong style="color: #60a5fa; font-size: 14px;">【結果レイヤー (人の振る舞い)】</strong><br>
+                            ${resultHtml}
+                        </div>
+
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #334155;">
+                            <strong style="color: #60a5fa; font-size: 14px;">【分析総括】</strong><br>
+                            ${persona.attributes}の視点からは、アセットに該当する固有指標において強みと弱みがはっきりと分かれる結果となりました。これらの個別要因を分析し、空間のさらなるアップデートに繋げてください。
+                        </div>
                     </div>
                 `;
-            });
+            }
             lucide.createIcons();
         }
 
@@ -472,7 +534,7 @@
             }
 
             generatedEvaluations.forEach(ev => {
-                delete ev.avgScore; // 一時変数を消す
+                delete ev.avgScore; 
                 dbEvals.push(ev);
             });
 
