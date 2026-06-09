@@ -115,12 +115,12 @@
                     <h3 style="margin: 0; padding: 0; border: none;"><i data-lucide="list-checks"></i> アセット連動型 指標マスタ</h3>
                 </div>
                 <p style="font-size: 13px; color: var(--admin-muted); margin-bottom: 16px;">
-                    代表指標はすべての対象地に適用されます。固有指標は「紐づくアセット」が対象地のアセット種別と一致した場合のみ現地入力画面に表示されます。
+                    共通指標はすべての対象地に適用されます。固有指標は「紐づくアセット」が対象地のアセット種別と一致した場合のみ現地入力画面に表示されます。
                 </p>
 
                 <!-- サブタブ -->
                 <div style="display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--admin-border); padding-bottom: 8px;">
-                    <button id="btn-ind-rep" class="btn-admin active" style="width: auto; padding: 6px 16px; background: rgba(255,255,255,0.1); border: 1px solid var(--border-color);" onclick="switchIndTab('rep')">代表指標マスタ</button>
+                    <button id="btn-ind-rep" class="btn-admin active" style="width: auto; padding: 6px 16px; background: rgba(255,255,255,0.1); border: 1px solid var(--border-color);" onclick="switchIndTab('rep')">共通指標マスタ</button>
                     <button id="btn-ind-spec" class="btn-admin" style="width: auto; padding: 6px 16px; background: transparent; border: 1px solid var(--border-color);" onclick="switchIndTab('spec')">固有指標マスタ</button>
                 </div>
 
@@ -581,7 +581,7 @@
 
                 tr.innerHTML = `
                     <td>
-                        <span style="font-size: 13px; font-weight: 500; color: ${ind.category === 'representative' ? '#10b981' : '#8b5cf6'};">${ind.category === 'representative' ? '代表' : '固有'}</span>
+                        <span style="font-size: 13px; font-weight: 500; color: ${ind.category === 'representative' ? '#10b981' : '#8b5cf6'};">${ind.category === 'representative' ? '共通' : '固有'}</span>
                     </td>
                     <td>${assetHtml}</td>
                     <td>

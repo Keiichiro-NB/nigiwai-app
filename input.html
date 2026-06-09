@@ -130,15 +130,21 @@
         // 送信処理（実際のDB/LocalStorageへ登録）
         function submitEvaluation() {
             const btn = document.querySelector('.btn-submit');
+            const originalHtml = btn.innerHTML;
             
             // ドラフトデータを読み込んでsys_evaluationsに登録
             const savedData = localStorage.getItem('nigiwai_draft');
             if (savedData) {
                 try {
                     const draftData = JSON.parse(savedData);
+                    
+                    // 日付・時間・天候を正しく登録データに含める（バグ修正）
                     const evalData = {
                         id: 'eval_' + Date.now(),
                         timestamp: new Date().toISOString(),
+                        date: draftData.date || new Date().toISOString().split('T')[0],
+                        time: draftData.time || '午前',
+                        weather: '晴', // 現場入力UIに天候選択肢がないため一旦「晴」で固定
                         placeId: draftData.location || '',
                         zoneId: draftData.zone || '',
                         source: 'Human',
@@ -147,10 +153,9 @@
                         comment: draftData.generalComment || ''
                     };
                     
-                    // --- 追加: バリデーションとエラー強調フラグ ---
+                    // バリデーションとエラー強調フラグ
                     let isComplete = true;
                     document.querySelectorAll('.indicator-card').forEach(card => {
-                        // Check if card is visible
                         if (card.style.display !== 'none') {
                             const selectedBtn = card.querySelector('.rating-btn.selected');
                             if (!selectedBtn) {
@@ -245,10 +250,12 @@
             
             indicators.forEach((ind, index) => {
                 const groupId = ind.id;
+                // UI上のバッジ表示の出し分け ([共通] または [固有])
+                const categoryBadge = (ind.category === 'representative' || ind.assetId === 'all') ? '[共通]' : '[固有]';
                 html += `
                     <div class="indicator-card">
                         <div class="indicator-header">
-                            <span class="indicator-name">${index + 1}. ${ind.name} <span style="font-size: 11px; color: #64748b; margin-left: 8px;">${ind.category === 'representative' || ind.assetId === 'all' ? '' : '[固有]'}</span></span>
+                            <span class="indicator-name">${index + 1}. ${ind.name} <span style="font-size: 11px; color: #64748b; margin-left: 8px;">${categoryBadge}</span></span>
                         </div>
                         <div class="rating-scale">
                             <div class="rating-btn" data-val="1" onclick="selectRating('${groupId}', 1, this)">1</div>

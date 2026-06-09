@@ -295,10 +295,11 @@ function renderL2ChartsAndScores() {
     // Calc Averages
     const getAvg = (vals) => vals.length > 0 ? (vals.reduce((a,b)=>a+b,0) / vals.length) : 0;
     
-    const causeLabels = causeInds.map(i => String(i.id).padStart(2, '0'));
+    // 頂点のラベルを「01好立地」のように数字と略称を組み合わせた形式に変更
+    const causeLabels = causeInds.map(i => String(i.id).padStart(2, '0') + (i.shortName || ''));
     const causeData = causeInds.map(i => getAvg(causeScores[i.id].vals));
     
-    const resultLabels = resultInds.map(i => String(i.id).padStart(2, '0'));
+    const resultLabels = resultInds.map(i => String(i.id).padStart(2, '0') + (i.shortName || ''));
     const resultData = resultInds.map(i => getAvg(resultScores[i.id].vals));
 
     // Render Charts

@@ -43,7 +43,7 @@ function initializeDemoData() {
             { id: 6, name: "アクティブシニア：健康＆本物志向層", attributes: "68歳／女性／主婦（夫はリタイア）。同伴形態：夫婦、または同世代の友人（2人）。", lifestyle: "健康維持と知的好奇心を満たすお出かけを好む。流行りものよりも、長く愛されている老舗や、信頼できる「本物・ホンモノ」に価値を感じる。", sensitivity: "新聞、テレビの旅・紀行番組、シニア向け雑誌、信頼できる知人からの紹介。スマホは使うが、文字が大きく分かりやすいデザインを好む。", comfort: "段差のないユニバーサルデザイン、見やすい大きな文字の案内板、途点で休憩できるベンチの多さ。", emotional: "安心・安全を感じる清潔感、スタッフの温かみのある丁寧な接客（コミュニケーション）、騒々しすぎない穏やかで上質なにぎわい。" },
             { id: 7, name: "インバウンド：訪日外国人旅行客", attributes: "28歳／男性／アメリカ人（ITエンジニア）。同伴形態：パートナー（恋人）と2人。", lifestyle: "日本独自の文化、歴史、あるいは「ローカルな日常の活気」を直接体験したい。観光地化されすぎた場所よりも、地元の人に愛されているリアルなスポットを好む。", sensitivity: "Reddit、トリップアドバイザー、海外インフルエンサーのYouTube/TikTok。Googleマップの英語レビューを非常に重視する。", comfort: "英語（多言語）対応や直感的なピクトグラム、キャッシュレス決済・タッチ決済の完全対応、フリーWi-Fiの安定性。", emotional: "日本的なデザインや文化の要素（異国情緒）、地元の人々のリアルな活気、ウェルカムでオープンなコミュニティの雰囲気。" },
             { id: 8, name: "ワークスタイル：リモート＆ノマドワーカー", attributes: "29歳／男性／フリーランスのデザイナー。同伴形態：1人（仕事目的だが、合間のリフレッシュも兼ねる）。", lifestyle: "仕事とプライベートの境界がシームレス。自宅以外の「サードプレイス（第3の居場所）」を常に探し、空間の機能性とインスピレーション（刺激）を重視する。", sensitivity: "note、テック・デザイン系メディア、ノマド向けカフェまとめアカウント。利便性とデザイン性の両面から空間を選ぶ。", comfort: "電源・高速Wi-Fiの確保、長時間のPC作業に適した椅子と机、長居しても罪悪感のないオペレーション。", emotional: "静かすぎず、適度なガヤガヤ感（カフェの雑音やホワイトノイズ）、クリエイティブな刺激を受ける洗練されたインテリアや照明デザイン。" },
-            { id: 9, name: "地元ローカル：郊外・近領住民層", attributes: "52歳／女性／パートタイム勤務。同伴形態：1人、または地元の友人。", lifestyle: "遠出するよりも、慣れ親しんだ地元で普段着のままリラックスして過ごしたい。派手なトレンドよりも、「いつもの安心感」や「コスパの良さ」が日常の幸せ。", sensitivity: "地域のフリーペーパー、LINEの地域グループ、知人からの口コミ。日々の生活圏内の情報に最も敏感。", comfort: "気軽に立ち寄れるアクセス性、普段使いしやすい価格帯の店舗構成、顔なじみのスタッフによる安心感。", emotional: "気取らないカジュアルな雰囲気、地域コミュニティとしての温かみのある活気（アットホーム感）、生活に溶け込む親しみやすいデザイン。" },
+            { id: 9, name: "地元ローカル：郊外・近領住民層", attributes: "52歳／女性／パートタイム勤務。同伴形態：1人、または地元の友人。", lifestyle: "遠出するよりも、慣れ親しんだ地元で普段着のままリラックスして過ごしたい。派手なトレンドよりも、「いつもの安心感」や「コスパの良さ」が日常の幸せ。", sensitivity: "地域のフリーペーパー、LINEの地域グループ、知人からの口コミ。日々の生活圏内の情報に最も敏感。", comfort: "気軽に立ち寄れるアクセス性、普段使いしやすい価格帯の店舗構成、顔なじみのスタッフによる安心感。", emotional: "気気取らないカジュアルな雰囲気、地域コミュニティとしての温かみのある活気（アットホーム感）、生活に溶け込む親しみやすいデザイン。" },
             { id: 10, name: "コスト重視：学生・若者コミュニティ層", attributes: "19歳／男性／専門学校生。同伴形態：学校や趣味の友人グループ（3〜5人）。", lifestyle: "自由に使えるお金は少ないが、仲間と集まって楽しく過ごす時間を何より大切にしたい。", sensitivity: "友人同士のリアルタイムな口コミ、SNS（鍵垢や身内のグループ通話等）での閉じた情報交換。コスパ情報に敏感。", comfort: "持ち込みや長居に対して寛容、または少額で利用できるカジュアルな飲食環境・フリースペース。", emotional: "周囲に気兼ねなく仲間とワイワイ騒げる・リラックスできる活気、フォーマルすぎない親しみやすい空間。" }
         ];
         localStorage.setItem('nigiwai_personas', JSON.stringify(defaultPersonas));
@@ -53,36 +53,36 @@ function initializeDemoData() {
     localStorage.removeItem('sys_indicators');
         const defaultIndicators = [
             // 【原因レイヤー（空間・設備：11項目）】
-            // 代表指標
-            { id: 1, name: '訪れやすい好立地が確保されている', type: 'cause', category: 'representative', assetId: 'all' },
-            { id: 2, name: '観光客から地元客までを継続的に呼び込むイベント企画＆広報体制がある', type: 'cause', category: 'representative', assetId: 'all' },
-            { id: 3, name: '施設のターゲットやコンセプトが明確に定義され、施設に反映されている', type: 'cause', category: 'representative', assetId: 'all' },
-            { id: 4, name: '適度に柔軟性のあるルールが設定されている', type: 'cause', category: 'representative', assetId: 'all' },
-            { id: 5, name: '来街者が気軽に座ってゆっくり滞在できるベンチや休憩スペースが確保されている', type: 'cause', category: 'representative', assetId: 'all' },
-            { id: 6, name: '誰もが快適に使えるユニバーサルなアメニティが確保されている', type: 'cause', category: 'representative', assetId: 'all' },
+            // 共通指標（旧：代表指標）
+            { id: 1, name: '訪れやすい好立地が確保されている', type: 'cause', category: 'representative', assetId: 'all', shortName: '好立地' },
+            { id: 2, name: '観光客から地元客までを継続的に呼び込むイベント企画＆広報体制がある', type: 'cause', category: 'representative', assetId: 'all', shortName: '企画＆広報' },
+            { id: 3, name: '施設のターゲットやコンセプトが明確に定義され、施設に反映されている', type: 'cause', category: 'representative', assetId: 'all', shortName: 'コンセプト' },
+            { id: 4, name: '適度に柔軟性のあるルールが設定されている', type: 'cause', category: 'representative', assetId: 'all', shortName: '柔軟ルール' },
+            { id: 5, name: '来街者が気軽に座ってゆっくり滞在できるベンチや休憩スペースが確保されている', type: 'cause', category: 'representative', assetId: 'all', shortName: '休憩空間' },
+            { id: 6, name: '誰もが快適に使えるユニバーサルなアメニティが確保されている', type: 'cause', category: 'representative', assetId: 'all', shortName: 'アメニティ' },
             // 固有指標
-            { id: 7, name: '話題性・集客力のあるテナントを誘致できている', type: 'cause', category: 'unique', assetId: 'marche' },
-            { id: 8, name: '商品やサービス、接客により滞在価値を高められるテナントのオペレーションが存在する', type: 'cause', category: 'unique', assetId: 'marche' },
-            { id: 9, name: 'コンセプトと合致する五感への刺激（音楽、香り、空調など）が設計されている', type: 'cause', category: 'unique', assetId: 'marche' },
-            { id: 10, name: 'ターゲット層に訴求する多彩なイベントを定期的に開催する計画が立てられている', type: 'cause', category: 'unique', assetId: 'marche' },
-            { id: 11, name: '飲み物や軽食を気軽に楽しめる利便性の高い飲食環境が計画されている', type: 'cause', category: 'unique', assetId: 'marche' },
+            { id: 7, name: '話題性・集客力のあるテナントを誘致できている', type: 'cause', category: 'unique', assetId: 'marche', shortName: 'テナント誘致' },
+            { id: 8, name: '商品やサービス、接客により滞在価値を高められるテナントのオペレーションが存在する', type: 'cause', category: 'unique', assetId: 'marche', shortName: '店舗運営' },
+            { id: 9, name: 'コンセプトと合致する五感への刺激（音楽、香り、空調など）が設計されている', type: 'cause', category: 'unique', assetId: 'marche', shortName: '五感刺激' },
+            { id: 10, name: 'ターゲット層に訴求する多彩なイベントを定期的に開催する計画が立てられている', type: 'cause', category: 'unique', assetId: 'marche', shortName: 'イベント計画' },
+            { id: 11, name: '飲み物や軽食を気軽に楽しめる利便性の高い飲食環境が計画されている', type: 'cause', category: 'unique', assetId: 'marche', shortName: '飲食環境' },
 
             // 【結果レイヤー（人の行動：13項目）】
-            // 代表指標
-            { id: 12, name: '属性と目的の両面で幅広い利用客が施設を利用している', type: 'effect', category: 'representative', assetId: 'all' },
-            { id: 13, name: '施設全体として、継続的な人の流入・回遊が見られる', type: 'effect', category: 'representative', assetId: 'all' },
-            { id: 14, name: '長く滞在している来街者が多い', type: 'effect', category: 'representative', assetId: 'all' },
-            { id: 15, name: '人口密度が適度であり、閑散または不快なほどの混雑を感じない', type: 'effect', category: 'representative', assetId: 'all' },
-            { id: 16, name: '会話や笑い声といったポジティブな音が聞こえ、活気が感じられる', type: 'effect', category: 'representative', assetId: 'all' },
-            { id: 17, name: '休憩場所でリラックスして過ごす人々が見られる', type: 'effect', category: 'representative', assetId: 'all' },
-            { id: 18, name: '歩きやすい動線により、敷地内での回遊性が高い', type: 'effect', category: 'representative', assetId: 'all' },
+            // 共通指標（旧：代表指標）
+            { id: 12, name: '属性と目的の両面で幅広い利用客が施設を利用している', type: 'effect', category: 'representative', assetId: 'all', shortName: '多様客層' },
+            { id: 13, name: '施設全体として、継続的な人の流入・回遊が見られる', type: 'effect', category: 'representative', assetId: 'all', shortName: '流入・回遊' },
+            { id: 14, name: '長く滞在している来街者が多い', type: 'effect', category: 'representative', assetId: 'all', shortName: '長期滞在' },
+            { id: 15, name: '人口密度が適度であり、閑散または不快なほどの混雑を感じない', type: 'effect', category: 'representative', assetId: 'all', shortName: '適度な密度' },
+            { id: 16, name: '会話や笑い声といったポジティブな音が聞こえ、活気が感じられる', type: 'effect', category: 'representative', assetId: 'all', shortName: '活気の音声' },
+            { id: 17, name: '休憩場所でリラックスして過ごす人々が見られる', type: 'effect', category: 'representative', assetId: 'all', shortName: '休憩風景' },
+            { id: 18, name: '歩きやすい動線により、敷地内での回遊性が高い', type: 'effect', category: 'representative', assetId: 'all', shortName: '快適な動線' },
             // 固有指標
-            { id: 19, name: '気軽にランチ/軽食を楽しむ人々が見られる', type: 'effect', category: 'unique', assetId: 'marche' },
-            { id: 20, name: '客単価や回転率が高く、施設全体としての活発活動が行われていると感じる', type: 'effect', category: 'unique', assetId: 'marche' },
-            { id: 21, name: '店員と客、客同士の弾む会話や笑い声が聞こえ、活気が感じられる', type: 'effect', category: 'unique', assetId: 'marche' },
-            { id: 22, name: '適度な音量でBGMが流れ、寂しさを感じない', type: 'effect', category: 'unique', assetId: 'marche' },
-            { id: 23, name: '販売員が活気ある呼び込みや丁寧な接客を行っていると感じられる', type: 'effect', category: 'unique', assetId: 'marche' },
-            { id: 24, name: '集客イベントが開催されて盛り上がりを感じることができる', type: 'effect', category: 'unique', assetId: 'marche' }
+            { id: 19, name: '気軽にランチ/軽食を楽しむ人々が見られる', type: 'effect', category: 'unique', assetId: 'marche', shortName: '飲食風景' },
+            { id: 20, name: '客単価や回転率が高く、施設全体としての活発活動が行われていると感じる', type: 'effect', category: 'unique', assetId: 'marche', shortName: '活発な購買' },
+            { id: 21, name: '店員と客、客同士の弾む会話や笑い声が聞こえ、活気が感じられる', type: 'effect', category: 'unique', assetId: 'marche', shortName: '弾む会話' },
+            { id: 22, name: '適度な音量でBGMが流れ、寂しさを感じない', type: 'effect', category: 'unique', assetId: 'marche', shortName: '心地よいBGM' },
+            { id: 23, name: '販売員が活気ある呼び込みや丁寧な接客を行っていると感じられる', type: 'effect', category: 'unique', assetId: 'marche', shortName: '活発な接客' },
+            { id: 24, name: '集客イベントが開催されて盛り上がりを感じることができる', type: 'effect', category: 'unique', assetId: 'marche', shortName: 'イベント盛況' }
         ];
         localStorage.setItem('nigiwai_indicators', JSON.stringify(defaultIndicators));
 
