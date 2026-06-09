@@ -320,6 +320,38 @@ function renderL2ChartsAndScores() {
     // Render Score UI for inline editing
     renderScoreEditors('cause-scores-container', causeInds, causeScores);
     renderScoreEditors('result-scores-container', resultInds, resultScores);
+
+    // --- 定性コメントの動的レンダリングロジック ---
+    const commentsContainer = document.getElementById('l2-comments-container');
+    if (commentsContainer) {
+        commentsContainer.innerHTML = '';
+        const evalsWithComments = filteredEvals.filter(ev => ev.comment && ev.comment.trim() !== '');
+        
+        if (evalsWithComments.length === 0) {
+            commentsContainer.innerHTML = '<div style="color: #94a3b8; font-size: 13px; text-align: center; padding: 20px;">選択された条件に合致する定性コメントはありません。</div>';
+        } else {
+            evalsWithComments.forEach(ev => {
+                const dateStr = ev.date || ev.timestamp.split('T')[0];
+                const isHuman = ev.source === 'Human';
+                const sourceText = isHuman ? `👤 人間による現地メモ (${ev.evaluator_name || '評価者'})` : `🤖 ${ev.source}`;
+                const colorMain = isHuman ? '#3b82f6' : '#8b5cf6';
+                const colorAccent = isHuman ? '#60a5fa' : '#c084fc';
+                
+                const cardHtml = `
+<div style="background: rgba(255, 255, 255, 0.03); padding: 14px; border-radius: 8px; border-left: 4px solid ${colorMain}; margin-bottom: 4px;">
+    <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 500;">
+        <span style="color: ${colorAccent}; display: flex; align-items: center; gap: 4px;">
+            ${sourceText}
+        </span>
+        <span>${dateStr} | 📍 ゾーン: ${ev.zoneId}</span>
+    </div>
+    <div style="font-size: 13px; color: #e2e8f0; line-height: 1.6; white-space: pre-wrap;">${ev.comment}</div>
+</div>`;
+                commentsContainer.insertAdjacentHTML('beforeend', cardHtml);
+            });
+        }
+        lucide.createIcons();
+    }
 }
 
 function renderLegend(containerId, inds) {
