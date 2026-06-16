@@ -164,6 +164,30 @@
             min-height: 80px;
         }
         option { padding: 4px 8px; }
+
+        /* Modal and Legend styling */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(4px);
+            z-index: 1000; justify-content: center; align-items: center; padding: 20px;
+        }
+        .modal-content {
+            background: #1e293b; border: 1px solid var(--border-color);
+            border-radius: 16px; padding: 24px; width: 100%; max-width: 800px;
+            max-height: 90vh; overflow-y: auto; position: relative;
+        }
+        .modal-close {
+            position: absolute; top: 16px; right: 16px; background: none; border: none;
+            color: var(--text-secondary); cursor: pointer; padding: 4px;
+        }
+        .modal-close:hover { color: white; }
+        
+        .legend-container {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;
+            margin-top: 16px; padding: 16px; background: rgba(0,0,0,0.2); border-radius: 8px;
+        }
+        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 11px; color: #cbd5e1; }
+        .legend-id { font-weight: 700; color: #60a5fa; font-size: 12px; }
     </style>
 </head>
 <body>
@@ -244,11 +268,17 @@
                     </div>
 
                     <div class="report-section">
-                        <h2 class="section-title"><i data-lucide="target"></i> アイデンティティ分析 (Identity Analysis)</h2>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <h2 class="section-title" style="margin: 0;"><i data-lucide="target"></i> アイデンティティ分析 (Identity Analysis)</h2>
+                            <button onclick="openIdentityModal()" style="background: rgba(59, 130, 246, 0.1); border: 1px solid #3b82f6; color: #60a5fa; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 6px;">
+                                <i data-lucide="maximize-2" style="width: 14px; height: 14px;"></i> 拡大
+                            </button>
+                        </div>
                         <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">同アセット（<span id="asset-name-label" style="color:white; font-weight:bold;"></span>）の全体平均との比較により、この空間ならではの「尖り」を特定します。</p>
                         <div class="chart-container">
                             <canvas id="identityRadar"></canvas>
                         </div>
+                        <div id="identity-legend-container" class="legend-container"></div>
                     </div>
 
                     <div class="report-section">
@@ -259,6 +289,18 @@
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- Identity Modal -->
+    <div id="identity-modal" class="modal-overlay" onclick="if(event.target===this) closeIdentityModal()">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeIdentityModal()"><i data-lucide="x"></i></button>
+            <h2 class="section-title" style="margin-bottom: 20px;"><i data-lucide="target"></i> アイデンティティ分析 (拡大表示)</h2>
+            <div class="chart-container" style="height: 400px;">
+                <canvas id="identityRadarModal"></canvas>
+            </div>
+            <div id="identity-legend-container-modal" class="legend-container"></div>
+        </div>
     </div>
 
     <script>
@@ -305,6 +347,7 @@
 
         let overallChartInstance = null;
         let identityChartInstance = null;
+        let identityChartInstanceModal = null;
 
         function mapTimeCategory(timeStr) {
             if(!timeStr) return '';
@@ -492,15 +535,22 @@
             const container = document.getElementById('individual-tables-container');
             container.innerHTML = '';
 
-            const categories = ['集客力', '空間品質', '稼ぐ力', 'その他'];
+            const layers = [
+                { id: 'cause', name: '原因レイヤー (空間・設備)' },
+                { id: 'result', name: '結果レイヤー (人の行動)' }
+            ];
             
-            categories.forEach(cat => {
-                const catInds = inds.filter(i => i.category === cat);
-                if(catInds.length === 0) return;
+            layers.forEach(layer => {
+                const layerInds = inds.filter(i => {
+                    if (layer.id === 'cause') return i.type === 'cause';
+                    return i.type === 'effect' || i.type === 'result';
+                });
+                
+                if(layerInds.length === 0) return;
 
                 let html = `
                     <div class="category-block">
-                        <div class="category-title">${cat} ${cat==='集客力'?'(にぎわいを生む力)':cat==='空間品質'?'(にぎわいを支える力)':'(賑わいを生む力)'}</div>
+                        <div class="category-title">${layer.name}</div>
                         <table class="indicator-table">
                             <thead>
                                 <tr>
@@ -515,7 +565,7 @@
                             <tbody>
                 `;
 
-                catInds.forEach((ind, idx) => {
+                layerInds.forEach((ind, idx) => {
                     const percent = (ind.score / 5) * 100;
                     const isStrength = ind.score >= 4.0;
                     html += `
@@ -557,7 +607,7 @@
             let characterDesc = "全体的にバランスが取れていますが、特筆すべき尖りが少ない状況です。";
             
             const causeAvg = inds.filter(i=>i.type==='cause').reduce((s,i)=>s+i.score,0) / (inds.filter(i=>i.type==='cause').length||1);
-            const resultAvg = inds.filter(i=>i.type==='result').reduce((s,i)=>s+i.score,0) / (inds.filter(i=>i.type==='result').length||1);
+            const resultAvg = inds.filter(i=>i.type==='result' || i.type === 'effect').reduce((s,i)=>s+i.score,0) / (inds.filter(i=>i.type==='result' || i.type === 'effect').length||1);
 
             if(score100 > 80) {
                 characterTitle = "高完成度・賑わい創出空間";
@@ -618,7 +668,9 @@
             // If no specific, fallback to representative
             const chartInds = specificInds.length >= 3 ? specificInds : inds.slice(0, 6);
 
-            drawRadar('identityRadar', chartInds.map(i=>i.name), [
+            const labels = chartInds.map(i => String(i.id).padStart(2, '0') + (i.shortName || ''));
+
+            drawRadar('identityRadar', labels, [
                 {
                     label: '対象地',
                     data: chartInds.map(i=>i.score),
@@ -630,6 +682,42 @@
                     color: '#94a3b8' // slate
                 }
             ], identityChartInstance, (chart) => { identityChartInstance = chart; });
+
+            drawRadar('identityRadarModal', labels, [
+                {
+                    label: '対象地',
+                    data: chartInds.map(i=>i.score),
+                    color: '#10b981'
+                },
+                {
+                    label: 'アセット全体平均',
+                    data: chartInds.map(i=>i.assetAvg),
+                    color: '#94a3b8'
+                }
+            ], identityChartInstanceModal, (chart) => { identityChartInstanceModal = chart; });
+
+            renderLegend('identity-legend-container', chartInds);
+            renderLegend('identity-legend-container-modal', chartInds);
+        }
+
+        function renderLegend(containerId, inds) {
+            const container = document.getElementById(containerId);
+            if(!container) return;
+            container.innerHTML = '';
+            inds.forEach(i => {
+                const div = document.createElement('div');
+                div.className = 'legend-item';
+                div.innerHTML = `<span class="legend-id">${String(i.id).padStart(2, '0')}</span> <span>${i.name}</span>`;
+                container.appendChild(div);
+            });
+        }
+
+        function openIdentityModal() {
+            document.getElementById('identity-modal').style.display = 'flex';
+        }
+
+        function closeIdentityModal() {
+            document.getElementById('identity-modal').style.display = 'none';
         }
 
         function renderPrescription(inds) {

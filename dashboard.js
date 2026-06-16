@@ -339,8 +339,6 @@ function renderL2ChartsAndScores() {
         if (evalsWithContent.length === 0) {
             commentsContainer.innerHTML = '<div style="color: #94a3b8; font-size: 13px; text-align: center; padding: 20px;">選択された条件に合致する定性コメントはありません。</div>';
         } else {
-            const indicators = JSON.parse(localStorage.getItem('nigiwai_indicators') || '[]');
-
             evalsWithContent.forEach(ev => {
                 const dateStr = ev.date || ev.timestamp.split('T')[0];
                 const placeName = getPlaceName(ev.placeId);
@@ -437,58 +435,82 @@ function renderL2ChartsAndScores() {
                     commentsContainer.insertAdjacentHTML('beforeend', cardHtml);
 
                 } else {
-                    // 従来の人間の評価（UIデザイン維持）
-                    const sourceText = `👤 人間による現地調査 (${ev.evaluator_name || '評価者'})`;
-                    const colorMain = '#10b981';
-                    const colorAccent = '#34d399';
-
-                    // ① 全体的な所感・気づき（または過去の古い統合テキストデータ）のレンダリング
-                    if (ev.comment && ev.comment.trim() !== '') {
-                        const isOldFormat = ev.comment.includes('【全体所感・気づき】') || ev.comment.includes('デモ用の初期データ');
-                        const badgeText = isOldFormat ? '全体レポート' : '全体的な所感・気づき';
+                    // 人間の評価（アウターの validIndicators をそのまま再利用してクリーンに抽出）
+                    const evaluatorName = ev.evaluator_name || '評価者';
+                    const avgScore = ev.avgScore ? Number(ev.avgScore).toFixed(1) : '-';
+                    const firstImpression = ev.comment && ev.comment.trim() !== '' ? ev.comment : '特記なし';
+                    
+                    const buildTableHtml = (indsList) => {
+                        if (indsList.length === 0) return '<p style="color: #94a3b8;">データなし</p>';
                         
-                        const cardHtml = `
-                        <div style="background: rgba(255, 255, 255, 0.02); padding: 14px; border-radius: 8px; border-left: 4px solid #3b82f6; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.05);">
-                            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--text-secondary); margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 6px;">
-                                <span style="color: #60a5fa; font-weight: 600;">${sourceText}</span>
-                                <span>📅 ${dateStr} ${ev.time || ''} | 🗺️ ${placeName} (${zoneName})</span>
-                            </div>
-                            <div style="font-size: 11px; background: rgba(59, 130, 246, 0.15); color: #93c5fd; padding: 2px 6px; border-radius: 4px; width: fit-content; margin-bottom: 8px; font-weight: bold;">${badgeText}</div>
-                            <div style="font-size: 13px; color: #e2e8f0; line-height: 1.6; white-space: pre-wrap;">${ev.comment}</div>
-                        </div>`;
-                        commentsContainer.insertAdjacentHTML('beforeend', cardHtml);
-                    }
-
-                    // ② 新しい構造化データに基づく「指標別のコメント＆画像」の個別レンダリング
-                    if (ev.comments) {
-                        Object.keys(ev.comments).forEach(indId => {
-                            const indText = ev.comments[indId];
-                            const indScore = ev.ratings ? ev.ratings[indId] : '-';
-                            const targetInd = indicators.find(i => String(i.id) === String(indId));
-                            const indName = targetInd ? targetInd.name : `指標ID: ${indId}`;
-                            const imgBase64 = ev.images ? ev.images[indId] : null;
-
+                        let html = `<table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; table-layout: fixed; margin-bottom: 8px;">
+                            <thead><tr style="color: #34d399; border-bottom: 1px solid #334155;">
+                            <th style="padding: 8px 4px; width: 8%;">#</th>
+                            <th style="padding: 8px 4px; width: 22%;">指標</th>
+                            <th style="padding: 8px 4px; width: 15%;">点数</th>
+                            <th style="padding: 8px 4px; width: 55%;">根拠（定性コメント）</th>
+                            </tr></thead><tbody>`;
+                            
+                        let count = 1;
+                        indsList.forEach(ind => {
+                            const indId = String(ind.id);
+                            const val = ev.ratings && ev.ratings[indId] ? ev.ratings[indId] : '-';
+                            const commentText = ev.comments && ev.comments[indId] ? ev.comments[indId].trim() : '';
+                            const imgBase64 = ev.images && ev.images[indId] ? ev.images[indId] : null;
+                            
+                            // テキストも画像もない場合は特記なし、画像だけある場合はテキスト部分は特記なしとする
+                            const reasonText = commentText !== '' ? commentText : '特記なし';
+                            
                             let imageHtml = '';
                             if (imgBase64) {
                                 imageHtml = `<div style="margin-top: 10px; border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); max-width: 320px;"><img src="${imgBase64}" style="width: 100%; max-height: 180px; object-fit: cover; display: block;"></div>`;
                             }
-
-                            const cardHtml = `
-                            <div style="background: rgba(255, 255, 255, 0.02); padding: 14px; border-radius: 8px; border-left: 4px solid #10b981; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.05);">
-                                <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--text-secondary); margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 6px;">
-                                    <span style="color: #34d399; font-weight: 600;">${sourceText}</span>
-                                    <span>📅 ${dateStr} ${ev.time || ''} | 🗺️ ${placeName} (${zoneName})</span>
-                                </div>
-                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
-                                    <div style="font-size: 11px; background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 2px 6px; border-radius: 4px; font-weight: bold;">No.${indId.padStart(2, '0')} ${indName}</div>
-                                    <div style="font-size: 11px; background: rgba(251, 191, 36, 0.15); color: #fbbf24; padding: 2px 6px; border-radius: 4px; font-weight: bold; white-space: nowrap;">評価点: ${indScore}点</div>
-                                </div>
-                                <div style="font-size: 13px; color: #e2e8f0; line-height: 1.6; white-space: pre-wrap;">${indText}</div>
-                                ${imageHtml}
-                            </div>`;
-                            commentsContainer.insertAdjacentHTML('beforeend', cardHtml);
+                            
+                            html += `
+                                <tr style="border-bottom: 1px solid #1e293b;">
+                                    <td style="padding: 8px 4px; vertical-align: top; color: #94a3b8;">${count++}</td>
+                                    <td style="padding: 8px 4px; vertical-align: top; font-weight: 500;">${ind.name}</td>
+                                    <td style="padding: 8px 4px; vertical-align: top;"><span style="background: rgba(16, 185, 129, 0.2); color: #34d399; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${val}</span></td>
+                                    <td style="padding: 8px 4px; vertical-align: top; opacity: 0.9; line-height: 1.4; white-space: normal;">
+                                        ${reasonText}
+                                        ${imageHtml}
+                                    </td>
+                                </tr>`;
                         });
-                    }
+                        html += `</tbody></table>`;
+                        return html;
+                    };
+                    
+                    const causeHtml = buildTableHtml(causeInds);
+                    const resultHtml = buildTableHtml(resultInds);
+
+                    const cardHtml = `
+                        <div class="eval-result-card" style="font-size: 13px; line-height: 1.5; color: #cbd5e1; background: #0f172a; border: 1px solid #10b981; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                                <h4 style="font-size: 16px; margin: 0; color: #34d399; display: flex; align-items: center; gap: 8px;"><i data-lucide="user"></i> ${evaluatorName}</h4>
+                                <span style="font-size: 11px; color: #94a3b8;">📅 ${dateStr} ${ev.time || ''} | 🗺️ ${placeName} (${zoneName})</span>
+                            </div>
+                            <div style="font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 12px; border-bottom: 1px solid #334155; padding-bottom: 8px;">推計満足度: ${avgScore} / 5.0</div>
+                            
+                            <div style="margin-bottom: 16px;">
+                                <strong style="color: #34d399; font-size: 14px;">【全体所感・第一印象】</strong><br>
+                                <div style="white-space: pre-wrap;">${firstImpression}</div>
+                            </div>
+                            <div style="margin-bottom: 16px;">
+                                <strong style="color: #34d399; font-size: 14px;">【原因レイヤー (環境・仕掛け)】</strong><br>
+                                ${causeHtml}
+                            </div>
+                            <div style="margin-bottom: 16px;">
+                                <strong style="color: #34d399; font-size: 14px;">【結果レイヤー (人の振る舞い)】</strong><br>
+                                ${resultHtml}
+                            </div>
+                            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #334155;">
+                                <strong style="color: #34d399; font-size: 14px;">【分析総括】</strong><br>
+                                人間の評価者（${evaluatorName}）による現地調査データです。現地のリアルな状況や感覚が反映されています。
+                            </div>
+                        </div>
+                    `;
+                    commentsContainer.insertAdjacentHTML('beforeend', cardHtml);
                 }
             });
         }

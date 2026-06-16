@@ -350,9 +350,6 @@
 
         <!-- 保存アクション -->
         <div style="display: flex; justify-content: flex-end; gap: 16px; margin-top: 30px;">
-            <button class="btn-admin" style="background: transparent; border: 1px solid var(--admin-border); width: auto; color: var(--admin-muted);" onclick="clearSettings()">
-                LocalStorage リセット
-            </button>
             <button class="btn-admin" style="width: auto; padding: 12px 32px;" onclick="saveSettings()">
                 <i data-lucide="save" style="width: 16px; display: inline-block; vertical-align: text-top; margin-right: 6px;"></i> 全設定を保存する
             </button>
@@ -864,32 +861,7 @@
             renderMaintenanceTable();
         }
 
-        // 設定のクリア
-        function clearSettings() {
-            if(confirm('LocalStorageに保存されているすべての設定データを消去しますか？')) {
-                localStorage.clear(); // すべてクリア
-                
-                // フォームのリセット (初期値へ戻す)
-                document.getElementById('geminiApiKey').value = '';
-                document.getElementById('auphonicKey').value = '';
-                document.getElementById('auphonicPreset').value = '';
-                document.getElementById('webhookUrl').value = 'https://nigiwai-app.local/webhook/auphonic';
-                document.getElementById('backupInterval').value = '1h';
 
-                document.getElementById('tenantId').value = 'org_vertex_pt';
-                document.getElementById('orgName').value = '株式会社ベルテクス・パートナーズ';
-                
-                placesData = [];
-                currentPlaceId = null;
-                document.getElementById('placeEditorSection').style.display = 'none';
-                renderPlaceList();
-
-                personasData = [];
-                currentPersonaId = null;
-                document.getElementById('personaEditorSection').style.display = 'none';
-                renderPersonaList();
-            }
-        }
 
         // トースト通知の表示
         function showToast(message) {

@@ -1,7 +1,6 @@
 // 初期データ生成ロジック (デモ環境用)
 function initializeDemoData() {
-    // 古いキャッシュによるバグを防ぐため、一度マスタをクリーンにする
-    localStorage.removeItem('sys_places');
+    // マスタが未定義の場合のみ初期化を行う（本番運用向け）
 
     // 1. Places (対象地) の初期化
     if (!localStorage.getItem('sys_places') || JSON.parse(localStorage.getItem('sys_places')).length === 0) {
@@ -31,9 +30,8 @@ function initializeDemoData() {
         localStorage.setItem('sys_places', JSON.stringify(demoPlaces));
     }
 
-    // 2. ペルソナマスタ (Personas) の初期化 (強制上書き)
-    localStorage.removeItem('nigiwai_personas');
-    localStorage.removeItem('sys_personas');
+    // 2. ペルソナマスタ (Personas) の初期化
+    if (!localStorage.getItem('nigiwai_personas') || JSON.parse(localStorage.getItem('nigiwai_personas')).length === 0) {
         const defaultPersonas = [
             { id: 1, name: "30代働く女性（タイパ・心地よさ重視）", attributes: "30代半ば、都内近郊在住。働く女性（単身または共働き）。", lifestyle: "日常の中に「自分なりの心地よさ」や「小さな特別感」を取り入れたい。モノやサービスの背景にある「ストーリー」や「質の良さ」に投資する傾向。", sensitivity: "マスメディアの流行に流されず、Instagramの保存機能、Pinterest、信頼するインフルエンサーから「パーソナライズされた1次情報」を能動的にキャッチ。", comfort: "無駄なストレス（複雑すぎる動線、不快な混雑、分かりにくい案内など）がないこと。", emotional: "視覚的な美しさ（色彩、デザインの統一感）、五感への配慮（明るさや雰囲気）、その空間にいることで自分の気分が上がるような「世界観」があること。" },
             { id: 2, name: "Z世代：トレンド＆体験消費層", attributes: "21歳／女性／大学生。同伴形態：大学の友人グループ（2〜3人）。", lifestyle: "リアルな場での「体験」や「思い出作り」を重視。SNSでの自己表現が生活の一部であり、友人との共有時間を最大化することに価値を感じる。", sensitivity: "TikTok、Instagramのリール、Lemon8等から、視覚的・直感的に「エモい」情報をキャッチ。ハッシュタグで能動的にトレンドを追う。", comfort: "スマート決済の導入など、デジタルでのスムーズさ。多少の混雑は「人気スポットだし仕方ない」と容認できる。", emotional: "フォトジェニックで「映える」視覚演出、動画に撮りたくなる動き（体験型イベントやオープンキッチンなど）、自分たちの世界に没入できる活気。" },
@@ -47,10 +45,10 @@ function initializeDemoData() {
             { id: 10, name: "コスト重視：学生・若者コミュニティ層", attributes: "19歳／男性／専門学校生。同伴形態：学校や趣味の友人グループ（3〜5人）。", lifestyle: "自由に使えるお金は少ないが、仲間と集まって楽しく過ごす時間を何より大切にしたい。", sensitivity: "友人同士のリアルタイムな口コミ、SNS（鍵垢や身内のグループ通話等）での閉じた情報交換。コスパ情報に敏感。", comfort: "持ち込みや長居に対して寛容、または少額で利用できるカジュアルな飲食環境・フリースペース。", emotional: "周囲に気兼ねなく仲間とワイワイ騒げる・リラックスできる活気、フォーマルすぎない親しみやすい空間。" }
         ];
         localStorage.setItem('nigiwai_personas', JSON.stringify(defaultPersonas));
+    }
 
-    // 3. 指標マスタ (Indicators) の初期化 (強制上書き)
-    localStorage.removeItem('nigiwai_indicators');
-    localStorage.removeItem('sys_indicators');
+    // 3. 指標マスタ (Indicators) の初期化
+    if (!localStorage.getItem('nigiwai_indicators') || JSON.parse(localStorage.getItem('nigiwai_indicators')).length === 0) {
         const defaultIndicators = [
             // 【原因レイヤー（空間・設備：11項目）】
             // 共通指標（旧：代表指標）
@@ -85,50 +83,6 @@ function initializeDemoData() {
             { id: 24, name: '集客イベントが開催されて盛り上がりを感じることができる', type: 'effect', category: 'unique', assetId: 'marche', shortName: 'イベント盛況' }
         ];
         localStorage.setItem('nigiwai_indicators', JSON.stringify(defaultIndicators));
-
-    // 4. 評価データ (Evaluations) の初期化
-    let sysEvals = JSON.parse(localStorage.getItem('sys_evaluations') || '[]');
-    let needsInit = false;
-    
-    // length === 0 判定ではなく、localStorageにキー自体が「完全に存在しない場合（null）」のみ初回初期化を行う
-    if (localStorage.getItem('sys_evaluations') === null) {
-        needsInit = true;
-    }
-    
-    const validNames = ['田中太郎', '鈴木一郎', '佐藤花子', '高橋次郎', '小林誠', '渡辺健', '伊藤明', '山本香', '中村洋', '小川由美'];
-    const validTimes = ['午前', '昼', '午後', '夕方', '夜'];
-
-    if (needsInit) {
-        const dummyEvals = [];
-        const placeId = 'メブクス豊洲'; // 日本語名で固定
-        const zoneId = '全体'; // 固定
-        const today = new Date().toISOString().split('T')[0];
-        
-        for (let i = 0; i < 10; i++) {
-            const timeCategory = validTimes[i % validTimes.length];
-            const evalName = validNames[i % validNames.length];
-            
-            const ratings = {};
-            for (let indId = 1; indId <= 24; indId++) {
-                ratings[String(indId)] = Math.floor(Math.random() * 5) + 1; // 1〜5
-            }
-            
-            dummyEvals.push({
-                id: 'eval_init_' + (i + 1),
-                timestamp: new Date().toISOString(),
-                date: today,
-                time: timeCategory,
-                weather: '晴',
-                placeId: placeId,
-                zoneId: zoneId,
-                source: 'Human',
-                evaluator_name: evalName,
-                ratings: ratings,
-                comment: `デモ用の初期データ（${timeCategory}の評価）です。`
-            });
-        }
-
-        localStorage.setItem('sys_evaluations', JSON.stringify(dummyEvals));
     }
 }
 
