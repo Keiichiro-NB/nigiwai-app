@@ -348,8 +348,15 @@
                 return;
             }
 
-            // 共通指標または現在のアセット種別に合致する固有指標のみを抽出
-            const validIndicators = indicators.filter(ind => ind.category === 'representative' || ind.assetId === 'all' || ind.assetId === assetType);
+            // 共通指標または現在のアセット種別に合致する固有指標のみを抽出（配列対応版）
+            const validIndicators = indicators.filter(ind => {
+                if (ind.category === 'representative' || ind.assetId === 'all') return true;
+                if (assetType) {
+                    if (Array.isArray(ind.assetId)) return ind.assetId.includes(assetType);
+                    return ind.assetId === assetType;
+                }
+                return false;
+            });
 
             // 選択されたペルソナごとに本物のGemini APIを順番に呼び出す
             for (const pId of personaIds) {

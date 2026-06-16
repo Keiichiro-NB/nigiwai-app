@@ -260,10 +260,13 @@
                 }
             }
             
-            // フィルタリング: 代表指標 または アセット種別が一致する固有指標
+            // フィルタリング: 代表指標 または アセット種別が一致する固有指標（配列対応版）
             const filteredIndicators = currentIndicators.filter(ind => {
-                if(ind.category === 'representative' || ind.assetId === 'all') return true;
-                if(assetType && ind.assetId === assetType) return true;
+                if (ind.category === 'representative' || ind.assetId === 'all') return true;
+                if (assetType) {
+                    if (Array.isArray(ind.assetId)) return ind.assetId.includes(assetType);
+                    return ind.assetId === assetType;
+                }
                 return false;
             });
             

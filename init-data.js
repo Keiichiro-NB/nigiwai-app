@@ -54,12 +54,12 @@ function initializeDemoData() {
         const defaultIndicators = [
             // 【原因レイヤー（空間・設備：11項目）】
             // 共通指標（旧：代表指標）
-            { id: 1, name: '訪れやすい好立地が確保されている', type: 'cause', category: 'representative', assetId: 'all', shortName: '好立地' },
-            { id: 2, name: '観光客から地元客までを継続的に呼び込むイベント企画＆広報体制がある', type: 'cause', category: 'representative', assetId: 'all', shortName: '企画＆広報' },
+            { id: 1, name: '訪れやすい場所にある', type: 'cause', category: 'representative', assetId: 'all', shortName: 'アクセス性' },
+            { id: 2, name: '人を継続的に呼び込むイベントを企画・開催している', type: 'cause', category: 'representative', assetId: 'all', shortName: 'イベント企画' },
             { id: 3, name: '施設のターゲットやコンセプトが明確に定義され、施設に反映されている', type: 'cause', category: 'representative', assetId: 'all', shortName: 'コンセプト' },
-            { id: 4, name: '適度に柔軟性のあるルールが設定されている', type: 'cause', category: 'representative', assetId: 'all', shortName: '柔軟ルール' },
-            { id: 5, name: '来街者が気軽に座ってゆっくり滞在できるベンチや休憩スペースが確保されている', type: 'cause', category: 'representative', assetId: 'all', shortName: '休憩空間' },
-            { id: 6, name: '誰もが快適に使えるユニバーサルなアメニティが確保されている', type: 'cause', category: 'representative', assetId: 'all', shortName: 'アメニティ' },
+            { id: 4, name: '窮屈に思わないルールが設定されている', type: 'cause', category: 'representative', assetId: 'all', shortName: '利用ルール' },
+            { id: 5, name: '気軽に利用できるベンチや休憩スペースが確保されている', type: 'cause', category: 'representative', assetId: 'all', shortName: '休憩空間' },
+            { id: 6, name: 'ユニアバーサルなアメニティ(トイレ・ゴミ箱・多言語案内・公衆Wi-Fi・日除け・休憩席・バリアフリー動線・ペット/ 授乳対応設備 など)が確保されている', type: 'cause', category: 'representative', assetId: 'all', shortName: 'ユニバーサル' },
             // 固有指標
             { id: 7, name: '話題性・集客力のあるテナントを誘致できている', type: 'cause', category: 'unique', assetId: 'marche', shortName: 'テナント誘致' },
             { id: 8, name: '商品やサービス、接客により滞在価値を高められるテナントのオペレーションが存在する', type: 'cause', category: 'unique', assetId: 'marche', shortName: '店舗運営' },
@@ -69,13 +69,13 @@ function initializeDemoData() {
 
             // 【結果レイヤー（人の行動：13項目）】
             // 共通指標（旧：代表指標）
-            { id: 12, name: '属性と目的の両面で幅広い利用客が施設を利用している', type: 'effect', category: 'representative', assetId: 'all', shortName: '多様客層' },
-            { id: 13, name: '施設全体として、継続的な人の流入・回遊が見られる', type: 'effect', category: 'representative', assetId: 'all', shortName: '流入・回遊' },
-            { id: 14, name: '長く滞在している来街者が多い', type: 'effect', category: 'representative', assetId: 'all', shortName: '長期滞在' },
-            { id: 15, name: '人口密度が適度であり、閑散または不快なほどの混雑を感じない', type: 'effect', category: 'representative', assetId: 'all', shortName: '適度な密度' },
-            { id: 16, name: '会話や笑い声といったポジティブな音が聞こえ、活気が感じられる', type: 'effect', category: 'representative', assetId: 'all', shortName: '活気の音声' },
+            { id: 12, name: '様々な目的・属性の方が施設を利用している', type: 'effect', category: 'representative', assetId: 'all', shortName: '多様客層' },
+            { id: 13, name: '施設への継続的な人の流入が見られる', type: 'effect', category: 'representative', assetId: 'all', shortName: '人の流入' },
+            { id: 14, name: '長く滞在している利用者が多い', type: 'effect', category: 'representative', assetId: 'all', shortName: '長期滞在' },
+            { id: 15, name: '適切な人口密度であり、閑散または不快なほどの混嫌を感じない', type: 'effect', category: 'representative', assetId: 'all', shortName: '人口密度' },
+            { id: 16, name: '会話や笑い声等により、ポジティブな印象/活気が感じられる', type: 'effect', category: 'representative', assetId: 'all', shortName: '音・活気' },
             { id: 17, name: '休憩場所でリラックスして過ごす人々が見られる', type: 'effect', category: 'representative', assetId: 'all', shortName: '休憩風景' },
-            { id: 18, name: '歩きやすい動線により、敷地内での回遊性が高い', type: 'effect', category: 'representative', assetId: 'all', shortName: '快適な動線' },
+            { id: 18, name: '施設内で利用者が回遊している', type: 'effect', category: 'representative', assetId: 'all', shortName: '人の回遊' },
             // 固有指標
             { id: 19, name: '気軽にランチ/軽食を楽しむ人々が見られる', type: 'effect', category: 'unique', assetId: 'marche', shortName: '飲食風景' },
             { id: 20, name: '客単価や回転率が高く、施設全体としての活発活動が行われていると感じる', type: 'effect', category: 'unique', assetId: 'marche', shortName: '活発な購買' },
