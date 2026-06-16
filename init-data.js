@@ -90,23 +90,13 @@ function initializeDemoData() {
     let sysEvals = JSON.parse(localStorage.getItem('sys_evaluations') || '[]');
     let needsInit = false;
     
+    // データが全く存在しない、または0件の場合のみ初期化フラグを立てる（罠の解除）
+    if (!localStorage.getItem('sys_evaluations') || sysEvals.length === 0) {
+        needsInit = true;
+    }
+    
     const validNames = ['田中太郎', '鈴木一郎', '佐藤花子', '高橋次郎', '小林誠', '渡辺健', '伊藤明', '山本香', '中村洋', '小川由美'];
     const validTimes = ['午前', '昼', '午後', '夕方', '夜'];
-    
-    if (sysEvals.length !== 10) {
-        needsInit = true;
-    } else {
-        // 古い形式のデータや指標不足などがあれば破棄
-        const hasOldData = sysEvals.some(ev => 
-            !validTimes.includes(ev.time) || 
-            !validNames.includes(ev.evaluator_name) ||
-            ev.placeId !== 'メブクス豊洲' ||
-            !ev.ratings || Object.keys(ev.ratings).length < 24
-        );
-        if (hasOldData) {
-            needsInit = true;
-        }
-    }
 
     if (needsInit) {
         const dummyEvals = [];

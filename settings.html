@@ -44,6 +44,7 @@
             <button class="tab-btn" onclick="switchTab('tab-persona', this)"><i data-lucide="bot"></i> AIペルソナ管理</button>
             <button class="tab-btn" onclick="switchTab('tab-org', this)"><i data-lucide="building"></i> 組織管理</button>
             <button class="tab-btn" onclick="switchTab('tab-api', this)"><i data-lucide="plug"></i> API設定</button>
+            <button class="tab-btn" onclick="switchTab('tab-data', this)"><i data-lucide="database"></i> 評価データ管理</button>
         </div>
 
         <!-- タブ1: マスタデータ管理 -->
@@ -316,6 +317,34 @@
                         <option value="always">アクセス時毎回</option>
                     </select>
                 </div>
+            </div>
+        </div>
+
+        <div id="tab-data" class="tab-pane">
+            <div class="settings-section" id="data-maintenance-section">
+                <h3><i data-lucide="database"></i> 評価データメンテナンス</h3>
+                <p style="font-size: 13px; color: var(--admin-muted); margin-bottom: 16px;">
+                    登録された評価データを一件ずつ選択して削除、またはデモ用のサンプルデータを再投入できます。
+                </p>
+                <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                    <button class="btn-admin" style="background: #f85149; width: auto;" onclick="deleteSelectedEvals()"><i data-lucide="trash-2" style="width:14px; vertical-align:middle; margin-right:4px;"></i> 選択したデータを削除</button>
+                    <button class="btn-admin" style="background: #238636; width: auto;" onclick="insertDemoEvals()"><i data-lucide="refresh-cw" style="width:14px; vertical-align:middle; margin-right:4px;"></i> デモデータを再投入</button>
+                </div>
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px; text-align: center;"><input type="checkbox" id="th-eval-select-all" onclick="toggleAllEvalCheckboxes(this)"></th>
+                            <th>評価日時</th>
+                            <th>対象エリア</th>
+                            <th>ゾーン</th>
+                            <th>評価者</th>
+                            <th>総合評価</th>
+                        </tr>
+                    </thead>
+                    <tbody id="maintenanceTableBody">
+                        <!-- JSで動的生成 -->
+                    </tbody>
+                </table>
             </div>
         </div>
 
@@ -831,6 +860,8 @@
             const orgName = localStorage.getItem('sys_org_name');
             if(tenantId) document.getElementById('tenantId').value = tenantId;
             if(orgName) document.getElementById('orgName').value = orgName;
+            
+            renderMaintenanceTable();
         }
 
         // 設定のクリア
@@ -868,7 +899,127 @@
                 toast.classList.remove('show');
             }, 3000);
         }
+        // --- データメンテナンス機能用のロジック ---
+        function getPlaceNameById(id) {
+            const p = placesData.find(x => x.id === id);
+            return p ? p.name : id;
+        }
+
+        function getZoneNameById(placeId, zoneId) {
+            const p = placesData.find(x => x.id === placeId);
+            if(p && p.zones) {
+                const z = p.zones.find(x => x.id === zoneId);
+                return z ? z.name : zoneId;
+            }
+            return zoneId;
+        }
+
+        function renderMaintenanceTable() {
+            const tbody = document.getElementById('maintenanceTableBody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            const evals = JSON.parse(localStorage.getItem('sys_evaluations') || '[]');
+            if (evals.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--admin-muted); padding: 20px;">登録されている評価データはありません</td></tr>';
+                return;
+            }
+
+            evals.forEach(ev => {
+                let avg = '-';
+                if (ev.ratings) {
+                    const vals = Object.values(ev.ratings).map(Number);
+                    if (vals.length > 0) {
+                        avg = (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1);
+                    }
+                }
+
+                const placeName = getPlaceNameById(ev.placeId);
+                const zoneName = getZoneNameById(ev.placeId, ev.zoneId);
+                const evaluator = ev.source === 'Human' ? (ev.evaluator_name || '調査員') : ev.source;
+                const dateStr = `${ev.date || ''} ${ev.time || ''}`;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="text-align: center;"><input type="checkbox" class="eval-select-checkbox" data-id="${ev.id}"></td>
+                    <td>${dateStr}</td>
+                    <td>${placeName}</td>
+                    <td>${zoneName}</td>
+                    <td>${evaluator}</td>
+                    <td style="font-weight: bold; color: var(--admin-accent);">${avg}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function toggleAllEvalCheckboxes(master) {
+            document.querySelectorAll('.eval-select-checkbox').forEach(cb => {
+                cb.checked = master.checked;
+            });
+        }
+
+        function deleteSelectedEvals() {
+            const checkboxes = document.querySelectorAll('.eval-select-checkbox:checked');
+            if (checkboxes.length === 0) {
+                alert('削除するデータを選択してください。');
+                return;
+            }
+
+            if (confirm(`選択された ${checkboxes.length} 件の評価データを削除しますか？`)) {
+                let evals = JSON.parse(localStorage.getItem('sys_evaluations') || '[]');
+                const targetIds = Array.from(checkboxes).map(cb => cb.getAttribute('data-id'));
+                
+                evals = evals.filter(ev => !targetIds.includes(ev.id));
+                localStorage.setItem('sys_evaluations', JSON.stringify(evals));
+                
+                renderMaintenanceTable();
+                document.getElementById('th-eval-select-all').checked = false;
+                
+                // トースト通知の表示
+                const toast = document.getElementById('toast');
+                if(toast) {
+                    toast.innerHTML = `<i data-lucide="check-circle"></i> 選択したデータを削除しました`;
+                    lucide.createIcons();
+                    toast.classList.add('show');
+                    setTimeout(() => toast.classList.remove('show'), 3000);
+                }
+            }
+        }
+
+        function insertDemoEvals() {
+            if (confirm('デモ用の初期サンプルデータ（10件）を新しく投入しますか？\\n（※既存のデータがある場合は、消去されずに末尾に追加されます）')) {
+                let evals = JSON.parse(localStorage.getItem('sys_evaluations') || '[]');
+                const validNames = ['田中太郎', '鈴木一郎', '佐藤花子', '高橋次郎', '小林誠', '渡辺健', '伊藤明', '山本香', '中村洋', '小川由美'];
+                const validTimes = ['午前', '昼', '午後', '夕方', '夜'];
+                const today = new Date().toISOString().split('T')[0];
+
+                for (let i = 0; i < 10; i++) {
+                    const timeCategory = validTimes[i % validTimes.length];
+                    const evalName = validNames[i % validNames.length];
+                    const ratings = {};
+                    for (let indId = 1; indId <= 24; indId++) {
+                        ratings[String(indId)] = Math.floor(Math.random() * 5) + 1;
+                    }
+                    evals.push({
+                        id: 'eval_init_' + Date.now() + '_' + i,
+                        timestamp: new Date().toISOString(),
+                        date: today,
+                        time: timeCategory,
+                        weather: '晴',
+                        placeId: 'メブクス豊洲',
+                        zoneId: '全体',
+                        source: 'Human',
+                        evaluator_name: evalName,
+                        ratings: ratings,
+                        comment: `手動投入されたデモデータ（${timeCategory}の評価）です。`
+                    });
+                }
+                localStorage.setItem('sys_evaluations', JSON.stringify(evals));
+                renderMaintenanceTable();
+            }
+        }
     </script>
-    <script src="auth.js"></script>`n</body>
+    <script src="auth.js"></script>
+</body>
 </html>
 
