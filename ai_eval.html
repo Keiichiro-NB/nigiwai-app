@@ -393,10 +393,7 @@ ${validIndicators.map(ind => `ID:${ind.id} - 名称:${ind.name} (区分:${ind.ty
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            contents: [{ parts: [{ text: prompt }] }],
-                            generationConfig: { 
-                                response_mime_type: "application/json" 
-                            }
+                            contents: [{ parts: [{ text: prompt }] }]
                         })
                     });
 
@@ -409,7 +406,20 @@ ${validIndicators.map(ind => `ID:${ind.id} - 名称:${ind.name} (区分:${ind.ty
                     
                     const resData = await response.json();
                     const rawText = resData.candidates[0].content.parts[0].text;
-                    const aiResult = JSON.parse(rawText);
+                    
+                    // マークダウン装飾（```json ~ ```）が含まれていても100%安全にJSON化できるお掃除ロジック
+                    let cleanedText = rawText.trim();
+                    if (cleanedText.startsWith("```json")) {
+                        cleanedText = cleanedText.substring(7);
+                    } else if (cleanedText.startsWith("```")) {
+                        cleanedText = cleanedText.substring(3);
+                    }
+                    if (cleanedText.endsWith("```")) {
+                        cleanedText = cleanedText.substring(0, cleanedText.length - 3);
+                    }
+                    cleanedText = cleanedText.trim();
+
+                    const aiResult = JSON.parse(cleanedText);
 
                     const mockRatings = {};
                     let sum = 0;
