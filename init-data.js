@@ -90,8 +90,8 @@ function initializeDemoData() {
     let sysEvals = JSON.parse(localStorage.getItem('sys_evaluations') || '[]');
     let needsInit = false;
     
-    // データが全く存在しない、または0件の場合のみ初期化フラグを立てる（罠の解除）
-    if (!localStorage.getItem('sys_evaluations') || sysEvals.length === 0) {
+    // length === 0 判定ではなく、localStorageにキー自体が「完全に存在しない場合（null）」のみ初回初期化を行う
+    if (localStorage.getItem('sys_evaluations') === null) {
         needsInit = true;
     }
     

@@ -892,8 +892,17 @@
         }
 
         // トースト通知の表示
-        function showToast() {
+        function showToast(message) {
             const toast = document.getElementById('toast');
+            if (!toast) return;
+            
+            if (message) {
+                toast.innerHTML = message;
+            } else {
+                toast.innerHTML = `<i data-lucide="check-circle"></i> LocalStorageに設定を保存しました`;
+            }
+            lucide.createIcons();
+            
             toast.classList.add('show');
             setTimeout(() => {
                 toast.classList.remove('show');
@@ -976,13 +985,7 @@
                 document.getElementById('th-eval-select-all').checked = false;
                 
                 // トースト通知の表示
-                const toast = document.getElementById('toast');
-                if(toast) {
-                    toast.innerHTML = `<i data-lucide="check-circle"></i> 選択したデータを削除しました`;
-                    lucide.createIcons();
-                    toast.classList.add('show');
-                    setTimeout(() => toast.classList.remove('show'), 3000);
-                }
+                showToast('<i data-lucide="check-circle"></i> 選択したデータを削除しました');
             }
         }
 

@@ -326,29 +326,75 @@ function renderL2ChartsAndScores() {
     const commentsContainer = document.getElementById('l2-comments-container');
     if (commentsContainer) {
         commentsContainer.innerHTML = '';
-        const evalsWithComments = filteredEvals.filter(ev => ev.comment && ev.comment.trim() !== '');
         
-        if (evalsWithComments.length === 0) {
+        // 全体所感、または構造化された個別コメント・画像があるデータをすべて抽出
+        const evalsWithContent = filteredEvals.filter(ev => 
+            (ev.comment && ev.comment.trim() !== '') || 
+            (ev.comments && Object.keys(ev.comments).length > 0) ||
+            (ev.images && Object.keys(ev.images).length > 0)
+        );
+        
+        if (evalsWithContent.length === 0) {
             commentsContainer.innerHTML = '<div style="color: #94a3b8; font-size: 13px; text-align: center; padding: 20px;">選択された条件に合致する定性コメントはありません。</div>';
         } else {
-            evalsWithComments.forEach(ev => {
+            const indicators = JSON.parse(localStorage.getItem('nigiwai_indicators') || '[]');
+
+            evalsWithContent.forEach(ev => {
                 const dateStr = ev.date || ev.timestamp.split('T')[0];
                 const isHuman = ev.source === 'Human';
-                const sourceText = isHuman ? `👤 人間による現地メモ (${ev.evaluator_name || '評価者'})` : `🤖 ${ev.source}`;
+                const sourceText = isHuman ? `👤 人間による現地調査 (${ev.evaluator_name || '評価者'})` : `🤖 ${ev.source}`;
                 const colorMain = isHuman ? '#3b82f6' : '#8b5cf6';
                 const colorAccent = isHuman ? '#60a5fa' : '#c084fc';
-                
-                const cardHtml = `
-<div style="background: rgba(255, 255, 255, 0.03); padding: 14px; border-radius: 8px; border-left: 4px solid ${colorMain}; margin-bottom: 4px;">
-    <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 500;">
-        <span style="color: ${colorAccent}; display: flex; align-items: center; gap: 4px;">
-            ${sourceText}
-        </span>
-        <span>${dateStr} | 📍 ゾーン: ${ev.zoneId}</span>
-    </div>
-    <div style="font-size: 13px; color: #e2e8f0; line-height: 1.6; white-space: pre-wrap;">${ev.comment}</div>
-</div>`;
-                commentsContainer.insertAdjacentHTML('beforeend', cardHtml);
+                const placeName = getPlaceName(ev.placeId);
+                const zoneName = getZoneName(ev.placeId, ev.zoneId);
+
+                // ① 全体的な所感・気づき（または過去の古い統合テキストデータ）のレンダリング
+                if (ev.comment && ev.comment.trim() !== '') {
+                    const isOldFormat = ev.comment.includes('【全体所感・気づき】') || ev.comment.includes('デモ用の初期データ');
+                    const badgeText = isOldFormat ? '全体レポート' : '全体的な所感・気づき';
+                    
+                    const cardHtml = `
+                    <div style="background: rgba(255, 255, 255, 0.02); padding: 14px; border-radius: 8px; border-left: 4px solid ${colorMain}; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.05);">
+                        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--text-secondary); margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 6px;">
+                            <span style="color: ${colorAccent}; font-weight: 600;">${sourceText}</span>
+                            <span>📅 ${dateStr} ${ev.time || ''} | 🗺️ ${placeName} (${zoneName})</span>
+                        </div>
+                        <div style="font-size: 11px; background: rgba(59, 130, 246, 0.15); color: #93c5fd; padding: 2px 6px; border-radius: 4px; width: fit-content; margin-bottom: 8px; font-weight: bold;">${badgeText}</div>
+                        <div style="font-size: 13px; color: #e2e8f0; line-height: 1.6; white-space: pre-wrap;">${ev.comment}</div>
+                    </div>`;
+                    commentsContainer.insertAdjacentHTML('beforeend', cardHtml);
+                }
+
+                // ② 新しい構造化データに基づく「指標別のコメント＆画像」の個別レンダリング
+                if (ev.comments) {
+                    Object.keys(ev.comments).forEach(indId => {
+                        const indText = ev.comments[indId];
+                        const indScore = ev.ratings ? ev.ratings[indId] : '-';
+                        const targetInd = indicators.find(i => String(i.id) === String(indId));
+                        const indName = targetInd ? targetInd.name : `指標ID: ${indId}`;
+                        const imgBase64 = ev.images ? ev.images[indId] : null;
+
+                        let imageHtml = '';
+                        if (imgBase64) {
+                            imageHtml = `<div style="margin-top: 10px; border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); max-width: 320px;"><img src="${imgBase64}" style="width: 100%; max-height: 180px; object-fit: cover; display: block;"></div>`;
+                        }
+
+                        const cardHtml = `
+                        <div style="background: rgba(255, 255, 255, 0.02); padding: 14px; border-radius: 8px; border-left: 4px solid #10b981; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.05);">
+                            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--text-secondary); margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 6px;">
+                                <span style="color: #34d399; font-weight: 600;">${sourceText}</span>
+                                <span>📅 ${dateStr} ${ev.time || ''} | 🗺️ ${placeName} (${zoneName})</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
+                                <div style="font-size: 11px; background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 2px 6px; border-radius: 4px; font-weight: bold;">No.${indId.padStart(2, '0')} ${indName}</div>
+                                <div style="font-size: 11px; background: rgba(251, 191, 36, 0.15); color: #fbbf24; padding: 2px 6px; border-radius: 4px; font-weight: bold; white-space: nowrap;">評価点: ${indScore}点</div>
+                            </div>
+                            <div style="font-size: 13px; color: #e2e8f0; line-height: 1.6; white-space: pre-wrap;">${indText}</div>
+                            ${imageHtml}
+                        </div>`;
+                        commentsContainer.insertAdjacentHTML('beforeend', cardHtml);
+                    });
+                }
             });
         }
         lucide.createIcons();

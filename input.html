@@ -132,60 +132,95 @@
             const btn = document.querySelector('.btn-submit');
             const originalHtml = btn.innerHTML;
             
-            // ドラフトデータを読み込んでsys_evaluationsに登録
-            const savedData = localStorage.getItem('nigiwai_draft');
-            if (savedData) {
-                try {
-                    const draftData = JSON.parse(savedData);
-                    
-                    // 日付・時間・天候を正しく登録データに含める（バグ修正）
-                    const evalData = {
-                        id: 'eval_' + Date.now(),
-                        timestamp: new Date().toISOString(),
-                        date: draftData.date || new Date().toISOString().split('T')[0],
-                        time: draftData.time || '午前',
-                        weather: '晴', // 現場入力UIに天候選択肢がないため一旦「晴」で固定
-                        placeId: draftData.location || '',
-                        zoneId: draftData.zone || '',
-                        source: 'Human',
-                        evaluator_name: draftData.evaluatorName || '',
-                        ratings: draftData.ratings || {},
-                        comment: draftData.generalComment || ''
-                    };
-                    
-                    // バリデーションとエラー強調フラグ
-                    let isComplete = true;
-                    document.querySelectorAll('.indicator-card').forEach(card => {
-                        if (card.style.display !== 'none') {
-                            const selectedBtn = card.querySelector('.rating-btn.selected');
-                            if (!selectedBtn) {
-                                isComplete = false;
-                                card.style.border = '2px solid #ef4444';
-                            } else {
-                                card.style.border = ''; // エラー解除
-                            }
-                        }
-                    });
+            // 画面の入力フォームから直接その場でデータをリアルタイム収集
+            const evalDate = document.getElementById('eval-date').value || new Date().toISOString().split('T')[0];
+            const evalTime = document.getElementById('eval-time').value || '午前';
+            const evalLocation = document.getElementById('eval-location').value;
+            const evalZone = document.getElementById('eval-zone').value;
+            const evaluatorName = document.getElementById('eval-evaluator-name').value || '調査員';
+            const generalComment = document.getElementById('general-comment').value || '';
 
-                    if (!isComplete) {
-                        alert("未評価の指標があります。赤枠の項目を確認してください。");
-                        btn.innerHTML = originalHtml;
-                        return;
-                    }
+            if (!evalLocation || !evalZone) {
+                alert("場所とセクション・ゾーンを選択してください。");
+                return;
+            }
 
-                    let evaluations = [];
-                    const storedEvals = localStorage.getItem('sys_evaluations');
-                    if (storedEvals) {
-                        evaluations = JSON.parse(storedEvals);
+            const ratings = {};
+            const commentsObj = {};
+            const imagesObj = {};
+            let isComplete = true;
+
+            // バリデーションチェック
+            document.querySelectorAll('.indicator-card').forEach(card => {
+                if (card.style.display !== 'none') {
+                    const selectedBtn = card.querySelector('.rating-btn.selected');
+                    if (!selectedBtn) {
+                        isComplete = false;
+                        card.style.border = '2px solid #ef4444';
+                    } else {
+                        card.style.border = ''; // エラー解除
                     }
-                    evaluations.push(evalData);
-                    localStorage.setItem('sys_evaluations', JSON.stringify(evaluations));
-                    
-                    // 送信完了後にドラフトを消去
-                    localStorage.removeItem('nigiwai_draft');
-                } catch(e) {
-                    console.error("Failed to save evaluation to DB", e);
                 }
+            });
+
+            if (!isComplete) {
+                alert("未評価の指標があります。赤枠の項目を確認してください。");
+                return;
+            }
+
+            // 指標ごとの「個別コメント」と「Base64画像」を構造化オブジェクトとして個別に収集
+            document.querySelectorAll('.indicator-card').forEach(card => {
+                if (card.style.display !== 'none') {
+                    const selectedBtn = card.querySelector('.rating-btn.selected');
+                    const commentInput = card.querySelector('textarea.comment-input');
+                    const groupId = commentInput ? commentInput.id.replace('-comment', '') : '';
+
+                    if (selectedBtn && groupId) {
+                        const val = selectedBtn.getAttribute('data-val');
+                        ratings[groupId] = val; // スコア
+                        
+                        // 個別コメントがあれば格納
+                        if (commentInput && commentInput.value.trim()) {
+                            commentsObj[groupId] = commentInput.value.trim();
+                        }
+                        
+                        // 添付画像があれば格納
+                        const previewDiv = document.getElementById(`${groupId}-preview`);
+                        if (previewDiv && previewDiv.hasAttribute('data-image')) {
+                            imagesObj[groupId] = previewDiv.getAttribute('data-image');
+                        }
+                    }
+                }
+            });
+
+            // 送信データの組み立て
+            const evalData = {
+                id: 'eval_' + Date.now(),
+                timestamp: new Date().toISOString(),
+                date: evalDate,
+                time: evalTime,
+                weather: '晴',
+                placeId: evalLocation,
+                zoneId: evalZone,
+                source: 'Human',
+                evaluator_name: evaluatorName,
+                ratings: ratings,
+                comments: commentsObj, // 構造化コメント
+                images: imagesObj,     // 構造化画像
+                comment: generalComment // 全体所感
+            };
+
+            try {
+                let evaluations = JSON.parse(localStorage.getItem('sys_evaluations') || '[]');
+                evaluations.push(evalData);
+                localStorage.setItem('sys_evaluations', JSON.stringify(evaluations));
+                
+                // 送信完了後に古い一時保存（ドラフト）をクリーンアップ
+                localStorage.removeItem('nigiwai_draft');
+            } catch(e) {
+                console.error("Failed to save evaluation to DB", e);
+                alert("データの保存に失敗しました。");
+                return;
             }
             
             // ボタンを完了状態に変化させる
@@ -195,7 +230,7 @@
             
             lucide.createIcons();
             
-            // 1.5秒後に index.html へ遷移
+            // 1.5秒後にダッシュボードへ自動遷移
             setTimeout(() => {
                 window.location.href = 'index.html';
             }, 1500);
@@ -557,6 +592,7 @@
         // Lucideアイコンの初期化
         lucide.createIcons();
     </script>
-    <script src="auth.js"></script>`n</body>
+    <script src="auth.js"></script>
+</body>
 </html>
 
