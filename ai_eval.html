@@ -395,7 +395,7 @@ ${validIndicators.map(ind => `ID:${ind.id} - 名称:${ind.name} (区分:${ind.ty
                         body: JSON.stringify({
                             contents: [{ parts: [{ text: prompt }] }],
                             generationConfig: { 
-                                responseMimeType: "application/json" 
+                                response_mime_type: "application/json" 
                             }
                         })
                     });
