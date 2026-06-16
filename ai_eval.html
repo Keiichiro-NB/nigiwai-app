@@ -338,6 +338,12 @@
             container.innerHTML = '';
             
             const indicators = JSON.parse(localStorage.getItem('nigiwai_indicators') || '[]');
+            
+            // init-data.js の初期英語ID（marche）を日本語（マルシェ）に自動補正する安全弁を追加
+            indicators.forEach(ind => {
+                if (ind.assetId === 'marche') ind.assetId = 'マルシェ';
+            });
+
             const place = nigiwaiPlaces.find(p => p.id === placeId);
             const finalPlaceName = place ? place.name : placeId; 
             const assetType = place ? place.asset : 'マルシェ';
