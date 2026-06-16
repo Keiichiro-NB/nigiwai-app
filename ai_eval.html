@@ -343,114 +343,93 @@
             const assetType = place ? place.asset : 'マルシェ';
             
             const geminiApiKey = localStorage.getItem('gemini_api_key');
-            if (geminiApiKey) {
-                console.log('Gemini APIを利用して評価を実行します...');
-                // --- 明日のAPI連携用：骨組み（System Instruction / User Prompt変数構築） ---
-                /*
-                const systemInstruction = `あなたは街や空間の”にぎわい”を可視化・評価するソリューションの「シニアAIエージェント」です。提供される動画および写真を解析し、指定された「AIペルソナ」なりきって、主観的かつ多角的な空間評価を行ってください。単なる物体検知（人数カウント等）ではなく、その空間に流れる「空気感」「活気」「ストレス」「心地よさ」を、ペルソナの価値観フィルターを通して言語化・数値化することが任務です。`;
-                const causeNames = indicators.filter(ind => ind.type === 'cause').map(ind => `・[${ind.id}] ${ind.name}`).join('\\n');
-                const resultNames = indicators.filter(ind => ind.type === 'effect').map(ind => `・[${ind.id}] ${ind.name}`).join('\\n');
-                */
-            } else {
-                console.log('APIキーが未登録です。本日はテスト用高精度モックモードで実行します。');
-                container.innerHTML = '<div style="color: #64748b; font-size: 13px; margin-bottom: 16px;">※APIキー未登録のため、テスト用高精度モックモードで実行しています。</div>';
+            if (!geminiApiKey) {
+                alert('APIキーがシステム設定に登録されていません。設定画面で登録してください。');
+                return;
             }
 
-            await new Promise(r => setTimeout(r, 2000));
+            // 共通指標または現在のアセット種別に合致する固有指標のみを抽出
+            const validIndicators = indicators.filter(ind => ind.category === 'representative' || ind.assetId === 'all' || ind.assetId === assetType);
 
+            // 選択されたペルソナごとに本物のGemini APIを順番に呼び出す
             for (const pId of personaIds) {
                 const persona = aiPersonas.find(p => p.id == pId);
                 if(!persona) continue;
 
-                let score = 3; 
-                let scoreModifier = 0;
-                
-                if(weather === '雨' || weather === '雪') score -= 0.5;
-                else if(weather === '晴') score += 0.5;
+                // プロンプトの構築
+                const prompt = `
+あなたは以下の「AIペルソナ」になりきって、指定された空間（アセット種別: ${assetType}）の賑わい評価シミュレーションを行ってください。
 
-                const isZGen = persona.name.includes('Z世代') || persona.name.includes('若者') || persona.attributes?.includes('若');
-                const isFamily = persona.name.includes('ファミリー') || persona.name.includes('家族') || persona.attributes?.includes('子');
+【あなたのペルソナ設定】
+名前: ${persona.name}
+属性: ${persona.attributes}
+ライフスタイル: ${persona.lifestyle}
+情報感度: ${persona.sensitivity}
+求める快適性: ${persona.comfort}
+感情的価値: ${persona.emotional}
 
-                if (isZGen) scoreModifier += 1.0;
-                else if (isFamily) scoreModifier -= 0.5;
-                else if (persona.id % 2 === 0) scoreModifier += 0.5;
-                else scoreModifier -= 0.5;
+【評価対象の環境】
+対象地: ${finalPlaceName} (ゾーン: ${zoneId})
+時間帯: ${timeStr}
+天候: ${weather}
 
-                score = Math.max(1, Math.min(5, score + scoreModifier));
+【評価すべき指標リスト】
+${validIndicators.map(ind => `ID:${ind.id} - 名称:${ind.name} (区分:${ind.type === 'cause' ? '原因レイヤー' : '結果レイヤー'})`).join('\n')}
 
-                const mockRatings = {};
-                let sum = 0;
-                let count = 0;
+上記の設定と環境に基づき、あなたのペルソナの価値観フィルターを通して、各指標を1から5（1:悪い/少ない、5:良い/多い）の整数で主観評価し、その点数にした理由（主観感想）を記述してください。
 
-                let causeHtml = `
-                            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; table-layout: fixed;">
-                                <thead>
-                                    <tr style="color: #60a5fa; border-bottom: 1px solid #334155;">
-                                        <th style="padding: 8px 4px; width: 8%;">#</th>
-                                        <th style="padding: 8px 4px; width: 22%;">指標</th>
-                                        <th style="padding: 8px 4px; width: 15%;">点数</th>
-                                        <th style="padding: 8px 4px; width: 55%;">根拠（主観感想）</th>
-                                    </tr>
-                                </thead>
-                                <tbody>`;
-                let resultHtml = `
-                            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; table-layout: fixed;">
-                                <thead>
-                                    <tr style="color: #60a5fa; border-bottom: 1px solid #334155;">
-                                        <th style="padding: 8px 4px; width: 8%;">#</th>
-                                        <th style="padding: 8px 4px; width: 22%;">指標</th>
-                                        <th style="padding: 8px 4px; width: 15%;">点数</th>
-                                        <th style="padding: 8px 4px; width: 55%;">根拠（主観感想）</th>
-                                    </tr>
-                                </thead>
-                                <tbody>`;
-                let combinedComment = ``;
+必ず以下のJSONフォーマットのみを出力してください。前後の説明文や \`\`\`json のようなマークダウン装飾は一切含めず、純粋なJSON文字列だけを返してください。
+{
+  "firstImpression": "空間全体に対するあなたのペルソナとしての第一印象（100文字程度）",
+  "evaluations": {
+    ${validIndicators.map(ind => `"${ind.id}": { "val": 1〜5の数値, "reason": "この点数にしたペルソナ視点でのリアルな理由・感想文" }`).join(',\n    ')}
+  }
+}
+`;
 
-                let firstImpression = '';
-                if (isZGen) {
-                    firstImpression = '人が多くて活気があり、とてもワクワクする空間です。映えるスポットや楽しそうなコンテンツが多く、思わずシェアしたくなります！';
-                } else if (isFamily) {
-                    firstImpression = '少し人が多くてベビーカーでの移動が大変でした。もう少し落ち着いて休憩できる安全なスペースや、子供への配慮があると嬉しいです。';
-                } else {
-                    if (weather === '晴') firstImpression = '天気が良く、活発に動く人々の様子が好印象でした。全体的にターゲット層に配慮された空間設計がなされています。';
-                    else firstImpression = '天候のせいか少し足早に通り過ぎる人が多く、やや落ち着いた雰囲気です。全体的にターゲット層に配慮された空間設計がなされています。';
-                }
+                try {
+                    // Google AI Studio の Gemini 1.5 Pro エンドポイントへリクエスト送信
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${geminiApiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: prompt }] }],
+                            generationConfig: { 
+                                responseMimeType: "application/json" 
+                            }
+                        })
+                    });
 
-                combinedComment += `【第一印象】\n${firstImpression}\n\n`;
-                combinedComment += `【原因レイヤー】\n`;
+                    if (!response.ok) throw new Error('Gemini APIへの通信に失敗しました。');
+                    
+                    const resData = await response.json();
+                    const rawText = resData.candidates[0].content.parts[0].text;
+                    const aiResult = JSON.parse(rawText);
 
-                let resultLayerComment = `\n【結果レイヤー】\n`;
-                let causeCount = 1;
-                let resultCount = 1;
+                    const mockRatings = {};
+                    let sum = 0;
+                    let count = 0;
 
-                indicators.forEach(ind => {
-                    if (ind.category === 'representative' || ind.assetId === assetType || ind.assetId === 'marche') {
-                        let val = score;
-                        let reason = "";
+                    let causeHtml = `<table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; table-layout: fixed;"><thead><tr style="color: #60a5fa; border-bottom: 1px solid #334155;"><th style="padding: 8px 4px; width: 8%;">#</th><th style="padding: 8px 4px; width: 22%;">指標</th><th style="padding: 8px 4px; width: 15%;">点数</th><th style="padding: 8px 4px; width: 55%;">根拠（主観感想）</th></tr></thead><tbody>`;
+                    let resultHtml = `<table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; table-layout: fixed;"><thead><tr style="color: #60a5fa; border-bottom: 1px solid #334155;"><th style="padding: 8px 4px; width: 8%;">#</th><th style="padding: 8px 4px; width: 22%;">指標</th><th style="padding: 8px 4px; width: 15%;">点数</th><th style="padding: 8px 4px; width: 55%;">根拠（主観感想）</th></tr></thead><tbody>`;
+                    
+                    let combinedComment = `【第一印象】\n${aiResult.firstImpression}\n\n【原因レイヤー】\n`;
+                    let resultLayerComment = `\n【結果レイヤー】\n`;
+                    let causeCount = 1;
+                    let resultCount = 1;
 
-                        if (ind.name.includes('賑わい') || ind.name.includes('活気') || ind.name.includes('交流') || ind.name.includes('イベント') || ind.name.includes('回遊') || ind.name.includes('店舗')) {
-                            val = isZGen ? Math.min(5, score + 1) : (isFamily ? Math.max(1, score - 1) : score);
-                            if (isZGen) reason = "人がいっぱい集まってて超アツい！お店の並びも密度高めで、歩いてるだけでワクワク感がヤバい！";
-                            else if (isFamily) reason = "通路が狭い上に人が密集しすぎていて、ベビーカーでの移動が本当に大変。回遊どころではなくてドッと疲れます…";
-                            else reason = "周囲に人が多く集まっており、全体的にポジティブでエネルギッシュな空気感を感じて、つい足を止めてしまいます。";
-                        } else if (ind.name.includes('静けさ') || ind.name.includes('安全') || ind.name.includes('清潔') || ind.name.includes('休憩') || ind.name.includes('自然')) {
-                            val = isFamily ? Math.min(5, score + 1) : (isZGen ? Math.max(1, score - 1) : score);
-                            if (isFamily) reason = "子供がぐずったときにサッと座らせて水分補給できるような、安全で広い休憩ベンチが用意されているのはすごく助かる！";
-                            else if (isZGen) reason = "座ってちょっとスマホいじったりチルできるベンチが少なすぎて、タイパ重視の私としては長居しづらいな〜";
-                            else reason = "程よく落ち着けるスペースが確保されていて、自分のペースで安心して過ごせる環境が整っているのが心地いいですね。";
-                        } else {
-                            val = Math.max(1, Math.min(5, score + Math.floor(Math.random() * 3) - 1));
-                            if (isZGen) reason = `私のスタイル（${persona.attributes}）からすると、ぶっちゃけこれくらいが普通かなって感じ。`;
-                            else if (isFamily) reason = `うちの家族の状況（${persona.attributes}）を考えると、特段不満もなく過ごせるレベルかなと思いますね。`;
-                            else reason = `私の価値観（${persona.attributes}）から見ると、ごく一般的な印象で、特に違和感はありません。`;
-                        }
+                    validIndicators.forEach(ind => {
+                        const aiEvalItem = aiResult.evaluations[String(ind.id)] || { val: 3, reason: "評価データが取得できませんでした。" };
+                        const val = Math.max(1, Math.min(5, Number(aiEvalItem.val || 3)));
+                        const reason = aiEvalItem.reason || "特記なし";
+
                         mockRatings[String(ind.id)] = val;
                         sum += val;
                         count++;
 
                         const lineText = `・[${ind.name}] : ${val}点（${reason}）\n`;
-                        
                         let trNum = ind.type === 'cause' ? causeCount++ : resultCount++;
+                        
                         let rowHtml = `
                                     <tr style="border-bottom: 1px solid #1e293b;">
                                         <td style="padding: 8px 4px; vertical-align: top; color: #94a3b8;">${trNum}</td>
@@ -466,56 +445,62 @@
                             resultLayerComment += lineText;
                             resultHtml += rowHtml;
                         }
-                    }
-                });
-                
-                causeHtml += `</tbody></table>`;
-                resultHtml += `</tbody></table>`;
-                
-                combinedComment += resultLayerComment;
-                const avgScore = count > 0 ? (sum / count) : score;
+                    });
+                    
+                    causeHtml += `</tbody></table>`;
+                    resultHtml += `</tbody></table>`;
+                    combinedComment += resultLayerComment;
+                    
+                    const avgScore = count > 0 ? (sum / count) : 3;
 
-                const evalData = {
-                    id: 'eval_ai_' + Date.now() + Math.floor(Math.random()*1000),
-                    timestamp: new Date().toISOString(),
-                    date: new Date().toISOString().split('T')[0],
-                    time: timeStr,
-                    weather: weather,
-                    placeId: finalPlaceName, 
-                    zoneId: zoneId,
-                    source: `AI (${persona.name})`,
-                    ratings: mockRatings,
-                    comment: combinedComment, 
-                    avgScore: avgScore
-                };
-                generatedEvaluations.push(evalData);
+                    // データベース（ダッシュボード）連動用のオブジェクト
+                    const evalData = {
+                        id: 'eval_ai_' + Date.now() + Math.floor(Math.random()*1000),
+                        timestamp: new Date().toISOString(),
+                        date: new Date().toISOString().split('T')[0],
+                        time: timeStr,
+                        weather: weather,
+                        placeId: placeId, // ダッシュボード側の紐付けバグを防ぐため、一意のIDで保存
+                        zoneId: zoneId,
+                        source: `AI (${persona.name})`,
+                        ratings: mockRatings,
+                        comment: combinedComment, 
+                        avgScore: avgScore
+                    };
+                    generatedEvaluations.push(evalData);
 
-                container.innerHTML += `
-                    <div class="eval-result-card" style="font-size: 13px; line-height: 1.5; color: #cbd5e1; background: #0f172a; border: 1px solid #3b82f6; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
-                        <h4 style="font-size: 16px; margin-bottom: 8px; color: #60a5fa; display: flex; align-items: center; gap: 8px;"><i data-lucide="bot"></i> ${persona.name}</h4>
-                        <div style="font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 12px; border-bottom: 1px solid #334155; padding-bottom: 8px;">推計満足度: ${avgScore.toFixed(1)} / 5.0</div>
-                        
-                        <div style="margin-bottom: 16px;">
-                            <strong style="color: #60a5fa; font-size: 14px;">【第一印象】</strong><br>
-                            ${firstImpression}
+                    container.innerHTML += `
+                        <div class="eval-result-card" style="font-size: 13px; line-height: 1.5; color: #cbd5e1; background: #0f172a; border: 1px solid #3b82f6; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                            <h4 style="font-size: 16px; margin-bottom: 8px; color: #60a5fa; display: flex; align-items: center; gap: 8px;"><i data-lucide="bot"></i> ${persona.name}</h4>
+                            <div style="font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 12px; border-bottom: 1px solid #334155; padding-bottom: 8px;">推計満足度: ${avgScore.toFixed(1)} / 5.0</div>
+                            
+                            <div style="margin-bottom: 16px;">
+                                <strong style="color: #60a5fa; font-size: 14px;">【第一印象】</strong><br>
+                                ${aiResult.firstImpression}
+                            </div>
+                            <div style="margin-bottom: 16px;">
+                                <strong style="color: #60a5fa; font-size: 14px;">【原因レイヤー (環境・仕掛け)】</strong><br>
+                                ${causeHtml}
+                            </div>
+                            <div style="margin-bottom: 16px;">
+                                <strong style="color: #60a5fa; font-size: 14px;">【結果レイヤー (人の振る舞い)】</strong><br>
+                                ${resultHtml}
+                            </div>
+                            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #334155;">
+                                <strong style="color: #60a5fa; font-size: 14px;">【分析総括】</strong><br>
+                                ${persona.attributes}の視点からは、アセットに該当する固有指標において強みと弱みがはっきりと分かれる結果となりました。これらの個別要因を分析し、空間のさらなるアップデートに繋げてください。
+                            </div>
                         </div>
-                        
-                        <div style="margin-bottom: 16px;">
-                            <strong style="color: #60a5fa; font-size: 14px;">【原因レイヤー (環境・仕掛け)】</strong><br>
-                            ${causeHtml}
+                    `;
+                } catch (e) {
+                    console.error("Gemini API Error: ", e);
+                    container.innerHTML += `
+                        <div class="eval-result-card" style="border-color: #ef4444;">
+                            <h4 style="color: #ef4444;"><i data-lucide="alert-triangle"></i> ${persona.name} の評価に失敗</h4>
+                            <p style="font-size: 13px; color: #94a3b8;">APIキーが無効であるか、制限エラーが発生しました。設定画面のキーを確認してください。</p>
                         </div>
-                        
-                        <div style="margin-bottom: 16px;">
-                            <strong style="color: #60a5fa; font-size: 14px;">【結果レイヤー (人の振る舞い)】</strong><br>
-                            ${resultHtml}
-                        </div>
-
-                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #334155;">
-                            <strong style="color: #60a5fa; font-size: 14px;">【分析総括】</strong><br>
-                            ${persona.attributes}の視点からは、アセットに該当する固有指標において強みと弱みがはっきりと分かれる結果となりました。これらの個別要因を分析し、空間のさらなるアップデートに繋げてください。
-                        </div>
-                    </div>
-                `;
+                    `;
+                }
             }
             lucide.createIcons();
         }
