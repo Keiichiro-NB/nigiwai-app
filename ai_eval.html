@@ -342,7 +342,7 @@
             const finalPlaceName = place ? place.name : placeId; 
             const assetType = place ? place.asset : 'マルシェ';
             
-            const geminiApiKey = localStorage.getItem('gemini_api_key');
+            const geminiApiKey = (localStorage.getItem('gemini_api_key') || '').trim();
             if (!geminiApiKey) {
                 alert('APIキーがシステム設定に登録されていません。設定画面で登録してください。');
                 return;
@@ -388,8 +388,8 @@ ${validIndicators.map(ind => `ID:${ind.id} - 名称:${ind.name} (区分:${ind.ty
 `;
 
                 try {
-                    // Google AI Studio の Gemini 1.5 Flash エンドポイントへリクエスト送信
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
+                    // 最新の正式版 v1 エンドポイントへリクエスト送信
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -400,7 +400,12 @@ ${validIndicators.map(ind => `ID:${ind.id} - 名称:${ind.name} (区分:${ind.ty
                         })
                     });
 
-                    if (!response.ok) throw new Error('Gemini APIへの通信に失敗しました。');
+                    if (!response.ok) {
+                        // Googleが返してきた生の拒絶理由（JSON）を解析して抽出
+                        const errJson = await response.json().catch(() => ({}));
+                        const errMsg = errJson.error?.message || '詳細なエラー理由をGoogleから取得できませんでした。';
+                        throw new Error(`Googleからの返答 (${response.status}): ${errMsg}`);
+                    }
                     
                     const resData = await response.json();
                     const rawText = resData.candidates[0].content.parts[0].text;
@@ -497,7 +502,10 @@ ${validIndicators.map(ind => `ID:${ind.id} - 名称:${ind.name} (区分:${ind.ty
                     container.innerHTML += `
                         <div class="eval-result-card" style="border-color: #ef4444;">
                             <h4 style="color: #ef4444;"><i data-lucide="alert-triangle"></i> ${persona.name} の評価に失敗</h4>
-                            <p style="font-size: 13px; color: #94a3b8;">APIキーが無効であるか、制限エラーが発生しました。設定画面のキーを確認してください。</p>
+                            <p style="font-size: 13px; color: #f85149; font-weight: 500; background: rgba(248,81,73,0.1); padding: 8px; border-radius: 4px;">
+                                ${e.message}
+                            </p>
+                            <p style="font-size: 12px; color: #94a3b8; margin-top: 8px;">設定画面（settings.html）の「API設定」タブに正しいキーが保存されているか、今一度ご確認ください。</p>
                         </div>
                     `;
                 }
