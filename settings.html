@@ -328,6 +328,7 @@
                 </p>
                 <div style="display: flex; gap: 12px; margin-bottom: 16px;">
                     <button class="btn-admin" style="background: #f85149; width: auto;" onclick="deleteSelectedEvals()"><i data-lucide="trash-2" style="width:14px; vertical-align:middle; margin-right:4px;"></i> 選択したデータを削除</button>
+                    <button class="btn-admin" style="background: #2563eb; width: auto;" onclick="exportSelectedEvals()"><i data-lucide="download" style="width:14px; vertical-align:middle; margin-right:4px;"></i> 選択したデータを出力</button>
                     <button class="btn-admin" style="background: #238636; width: auto;" onclick="insertDemoEvals()"><i data-lucide="refresh-cw" style="width:14px; vertical-align:middle; margin-right:4px;"></i> デモデータを再投入</button>
                 </div>
                 <table class="admin-table">
@@ -959,6 +960,85 @@
                 // トースト通知の表示
                 showToast('<i data-lucide="check-circle"></i> 選択したデータを削除しました');
             }
+        }
+
+        function exportSelectedEvals() {
+            const checkboxes = document.querySelectorAll('.eval-select-checkbox:checked');
+            if (checkboxes.length === 0) {
+                alert('出力するデータを選択してください。');
+                return;
+            }
+
+            let evals = JSON.parse(localStorage.getItem('sys_evaluations') || '[]');
+            const targetIds = Array.from(checkboxes).map(cb => cb.getAttribute('data-id'));
+            const targetEvals = evals.filter(ev => targetIds.includes(ev.id));
+
+            // ヘッダー作成
+            const inds = indicatorsData;
+            const headers = ['ID', '評価日時', '対象地', 'ゾーン', '評価者', '総合評価', '全体コメント'];
+            inds.forEach(ind => {
+                headers.push(ind.name);
+            });
+
+            let csvContent = headers.map(h => `"${h.replace(/"/g, '""')}"`).join(',') + '\n';
+
+            targetEvals.forEach(ev => {
+                const dateStr = `${ev.date || ''} ${ev.time || ''}`.trim();
+                const placeName = getPlaceNameById(ev.placeId);
+                const zoneName = getZoneNameById(ev.placeId, ev.zoneId);
+                const evaluator = ev.source === 'Human' ? (ev.evaluator_name || '調査員') : ev.source;
+
+                let avg = '-';
+                if (ev.ratings) {
+                    const vals = Object.values(ev.ratings).map(Number);
+                    if (vals.length > 0) {
+                        avg = (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1);
+                    }
+                }
+
+                const comment = (ev.comment || '').replace(/\n/g, ' ');
+                
+                const row = [
+                    ev.id,
+                    dateStr,
+                    placeName,
+                    zoneName,
+                    evaluator,
+                    avg,
+                    comment
+                ];
+
+                inds.forEach(ind => {
+                    row.push(ev.ratings && ev.ratings[ind.id] ? ev.ratings[ind.id] : '');
+                });
+
+                csvContent += row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',') + '\n';
+            });
+
+            // BOM付きでBlob作成 (Excel文字化け対策)
+            const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+            const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+
+            // ファイル名 (日付付き)
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            const filename = `nigiwai_export_${yyyy}${mm}${dd}.csv`;
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            // チェックをリセット
+            document.querySelectorAll('.eval-select-checkbox:checked').forEach(cb => cb.checked = false);
+            const masterCb = document.getElementById('th-eval-select-all');
+            if (masterCb) masterCb.checked = false;
         }
 
         function insertDemoEvals() {
