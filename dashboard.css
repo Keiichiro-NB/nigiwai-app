@@ -450,3 +450,62 @@ header {
 .admin-only {
     transition: opacity 0.3s, max-height 0.3s;
 }
+
+/* Mobile Sidebar Toggle */
+.mobile-menu-toggle {
+    display: none;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    cursor: pointer;
+    margin-right: 16px;
+    padding: 8px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: background 0.3s;
+}
+.mobile-menu-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 768px) {
+    .mobile-menu-toggle {
+        display: flex;
+    }
+    
+    .sidebar {
+        position: fixed;
+        left: -260px;
+        top: 0;
+        bottom: 0;
+        z-index: 1000;
+        background: rgba(15, 23, 42, 0.95);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 4px 0 24px rgba(0,0,0,0.5);
+    }
+    
+    .sidebar.open {
+        left: 0;
+    }
+    
+    .main-content {
+        padding: 24px 20px;
+    }
+    
+    header {
+        justify-content: flex-start;
+    }
+    
+    .header-title {
+        flex: 1;
+    }
+    
+    .data-controls {
+        flex-wrap: wrap;
+        margin-top: 16px;
+        justify-content: flex-start;
+    }
+}

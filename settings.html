@@ -359,7 +359,7 @@
 
     <!-- トースト通知 -->
     <div id="toast" class="toast">
-        <i data-lucide="check-circle"></i> LocalStorageに設定を保存しました
+        <i data-lucide="check-circle"></i> 設定を保存しました
     </div>
 
     <script src="data-service.js"></script>
@@ -853,6 +853,7 @@
 
 
 
+        let toastTimeout;
         // トースト通知の表示
         function showToast(message) {
             const toast = document.getElementById('toast');
@@ -861,12 +862,20 @@
             if (message) {
                 toast.innerHTML = message;
             } else {
-                toast.innerHTML = `<i data-lucide="check-circle"></i> LocalStorageに設定を保存しました`;
+                toast.innerHTML = `<i data-lucide="check-circle"></i> 設定を保存しました`;
             }
             lucide.createIcons();
             
+            if (toastTimeout) {
+                clearTimeout(toastTimeout);
+            }
+            toast.classList.remove('show');
+            
+            // 強制的にリフローさせてアニメーションをリセット
+            void toast.offsetWidth;
+            
             toast.classList.add('show');
-            setTimeout(() => {
+            toastTimeout = setTimeout(() => {
                 toast.classList.remove('show');
             }, 3000);
         }

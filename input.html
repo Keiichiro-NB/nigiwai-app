@@ -134,15 +134,15 @@
             const originalHtml = btn.innerHTML;
             
             // 画面の入力フォームから直接その場でデータをリアルタイム収集
-            const evalDate = document.getElementById('eval-date').value || new Date().toISOString().split('T')[0];
-            const evalTime = document.getElementById('eval-time').value || '午前';
+            const evalDate = document.getElementById('eval-date').value;
+            const evalTime = document.getElementById('eval-time').value;
             const evalLocation = document.getElementById('eval-location').value;
             const evalZone = document.getElementById('eval-zone').value;
-            const evaluatorName = document.getElementById('eval-evaluator-name').value || '調査員';
+            const evaluatorName = document.getElementById('eval-evaluator-name').value;
             const generalComment = document.getElementById('general-comment').value || '';
 
-            if (!evalLocation || !evalZone) {
-                alert("場所とセクション・ゾーンを選択してください。");
+            if (!evalDate || !evalTime || !evaluatorName || !evalLocation || !evalZone) {
+                alert("日付、時間、評価者名、場所、セクション・ゾーンはすべて必須入力です。");
                 return;
             }
 

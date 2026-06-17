@@ -62,12 +62,19 @@ async function renderDashboard() {
                 time: ev.time,
                 zoneId: ev.zoneId,
                 evaluators: 0,
+                humanCount: 0,
+                aiCount: 0,
                 totalScores: [],
                 allEvals: [] // row specific
             };
         }
         
         tableDataMap[key].evaluators++;
+        if (ev.source && ev.source.startsWith('AI')) {
+            tableDataMap[key].aiCount++;
+        } else {
+            tableDataMap[key].humanCount++;
+        }
         tableDataMap[key].allEvals.push(ev);
         
         // Calculate average score for this eval
@@ -99,12 +106,23 @@ async function renderDashboard() {
         
         tr.onclick = () => openL2(row);
         
+        let evalCountText = '';
+        if (row.humanCount > 0 && row.aiCount > 0) {
+            evalCountText = `人 ${row.humanCount}名 / AI ${row.aiCount}名`;
+        } else if (row.humanCount > 0) {
+            evalCountText = `人 ${row.humanCount}名`;
+        } else if (row.aiCount > 0) {
+            evalCountText = `AI ${row.aiCount}名`;
+        } else {
+            evalCountText = `0名`;
+        }
+
         tr.innerHTML = `
             <td style="padding: 12px 16px;">${row.placeId}</td>
             <td style="padding: 12px 16px;">${row.date} ${row.time}</td>
             <td style="padding: 12px 16px;">${getZoneName(places, row.placeId, row.zoneId)}</td>
             <td style="padding: 12px 16px; font-weight: bold; color: #3b82f6;">${avgTotal}</td>
-            <td style="padding: 12px 16px;">${row.evaluators} 名/AI</td>
+            <td style="padding: 12px 16px;">${evalCountText}</td>
         `;
         if(tbody) tbody.appendChild(tr);
     });
