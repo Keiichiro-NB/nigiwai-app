@@ -388,10 +388,10 @@ async function renderL2ChartsAndScores() {
                     const parseLinesToTable = (text) => {
                         let html = `<table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; table-layout: fixed; margin-bottom: 8px;">
                             <thead><tr style="color: #60a5fa; border-bottom: 1px solid #334155;">
-                            <th style="padding: 8px 4px; width: 8%;">#</th>
-                            <th style="padding: 8px 4px; width: 22%;">指標</th>
-                            <th style="padding: 8px 4px; width: 15%;">点数</th>
-                            <th style="padding: 8px 4px; width: 55%;">根拠（主観感想）</th>
+                            <th style="padding: 8px 4px; width: 4%;">#</th>
+                            <th style="padding: 8px 4px; width: 26%;">指標</th>
+                            <th style="padding: 8px 4px; width: 8%;">点数</th>
+                            <th style="padding: 8px 4px; width: 62%;">根拠（主観感想）</th>
                             </tr></thead><tbody>`;
                             
                         const lines = text.split('\n');
@@ -424,13 +424,32 @@ async function renderL2ChartsAndScores() {
                     const personaObj = personas.find(p => p.name === personaName);
                     const pAttr = personaObj ? personaObj.attributes : 'ペルソナ';
 
+                    // 平均点計算（原因レイヤーと結果レイヤー）
+                    const causeScores = [];
+                    const resultScores = [];
+                    if (ev.ratings) {
+                        Object.keys(ev.ratings).forEach(indId => {
+                            const val = Number(ev.ratings[indId]);
+                            const ind = validIndicators.find(i => String(i.id) === indId);
+                            if (ind) {
+                                if (ind.type === 'cause') causeScores.push(val);
+                                else if (ind.type === 'effect' || ind.type === 'result') resultScores.push(val);
+                            }
+                        });
+                    }
+                    const causeAvg = causeScores.length > 0 ? (causeScores.reduce((a,b)=>a+b,0) / causeScores.length).toFixed(1) : '-';
+                    const resultAvg = resultScores.length > 0 ? (resultScores.reduce((a,b)=>a+b,0) / resultScores.length).toFixed(1) : '-';
+
                     const cardHtml = `
                         <div class="eval-result-card" style="font-size: 13px; line-height: 1.5; color: #cbd5e1; background: #0f172a; border: 1px solid #3b82f6; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
-                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
                                 <h4 style="font-size: 16px; margin: 0; color: #60a5fa; display: flex; align-items: center; gap: 8px;"><i data-lucide="bot"></i> ${personaName}</h4>
-                                <span style="font-size: 11px; color: #94a3b8;">📅 ${dateStr} ${ev.time || ''} | 🗺️ ${placeName} (${zoneName})</span>
+                                <span style="font-size: 12px; color: #e2e8f0; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); padding: 4px 10px; border-radius: 12px; display: inline-flex; align-items: center; gap: 6px;">📅 ${dateStr} ${ev.time || ''} | 🗺️ ${placeName} (${zoneName})</span>
                             </div>
-                            <div style="font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 12px; border-bottom: 1px solid #334155; padding-bottom: 8px;">推計満足度: ${avgScore} / 5.0</div>
+                            <div style="display: flex; gap: 16px; font-size: 14px; font-weight: 700; margin-bottom: 12px; border-bottom: 1px solid #334155; padding-bottom: 12px;">
+                                <span style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(16, 185, 129, 0.3);">原因レイヤー：${causeAvg} <span style="font-size: 11px; opacity: 0.7; font-weight: normal;">/ 5.0</span></span>
+                                <span style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6; padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(139, 92, 246, 0.3);">結果レイヤー：${resultAvg} <span style="font-size: 11px; opacity: 0.7; font-weight: normal;">/ 5.0</span></span>
+                            </div>
                             
                             <div style="margin-bottom: 16px;">
                                 <strong style="color: #60a5fa; font-size: 14px;">【第一印象】</strong><br>
@@ -463,10 +482,10 @@ async function renderL2ChartsAndScores() {
                         
                         let html = `<table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; table-layout: fixed; margin-bottom: 8px;">
                             <thead><tr style="color: #34d399; border-bottom: 1px solid #334155;">
-                            <th style="padding: 8px 4px; width: 8%;">#</th>
-                            <th style="padding: 8px 4px; width: 22%;">指標</th>
-                            <th style="padding: 8px 4px; width: 15%;">点数</th>
-                            <th style="padding: 8px 4px; width: 55%;">根拠（定性コメント）</th>
+                            <th style="padding: 8px 4px; width: 4%;">#</th>
+                            <th style="padding: 8px 4px; width: 26%;">指標</th>
+                            <th style="padding: 8px 4px; width: 8%;">点数</th>
+                            <th style="padding: 8px 4px; width: 62%;">根拠（定性コメント）</th>
                             </tr></thead><tbody>`;
                             
                         let count = 1;
@@ -481,7 +500,9 @@ async function renderL2ChartsAndScores() {
                             
                             let imageHtml = '';
                             if (imgBase64) {
-                                imageHtml = `<div style="margin-top: 10px; border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); max-width: 320px;"><img src="${imgBase64}" style="width: 100%; max-height: 180px; object-fit: cover; display: block;"></div>`;
+                                imageHtml = `<div style="margin-top: 10px; border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.2); max-width: 200px; background: rgba(0,0,0,0.3); cursor: pointer;" onclick="openImageModal(this.querySelector('img').src)">
+                                    <img src="${imgBase64}" style="width: 100%; max-height: 140px; object-fit: contain; display: block; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                                </div>`;
                             }
                             
                             html += `
@@ -502,13 +523,32 @@ async function renderL2ChartsAndScores() {
                     const causeHtml = buildTableHtml(causeInds);
                     const resultHtml = buildTableHtml(resultInds);
 
+                    // 平均点計算（原因レイヤーと結果レイヤー）
+                    const causeScores = [];
+                    const resultScores = [];
+                    if (ev.ratings) {
+                        Object.keys(ev.ratings).forEach(indId => {
+                            const val = Number(ev.ratings[indId]);
+                            const ind = validIndicators.find(i => String(i.id) === indId);
+                            if (ind) {
+                                if (ind.type === 'cause') causeScores.push(val);
+                                else if (ind.type === 'effect' || ind.type === 'result') resultScores.push(val);
+                            }
+                        });
+                    }
+                    const causeAvg = causeScores.length > 0 ? (causeScores.reduce((a,b)=>a+b,0) / causeScores.length).toFixed(1) : '-';
+                    const resultAvg = resultScores.length > 0 ? (resultScores.reduce((a,b)=>a+b,0) / resultScores.length).toFixed(1) : '-';
+
                     const cardHtml = `
                         <div class="eval-result-card" style="font-size: 13px; line-height: 1.5; color: #cbd5e1; background: #0f172a; border: 1px solid #10b981; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
-                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
                                 <h4 style="font-size: 16px; margin: 0; color: #34d399; display: flex; align-items: center; gap: 8px;"><i data-lucide="user"></i> ${evaluatorName}</h4>
-                                <span style="font-size: 11px; color: #94a3b8;">📅 ${dateStr} ${ev.time || ''} | 🗺️ ${placeName} (${zoneName})</span>
+                                <span style="font-size: 12px; color: #e2e8f0; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); padding: 4px 10px; border-radius: 12px; display: inline-flex; align-items: center; gap: 6px;">📅 ${dateStr} ${ev.time || ''} | 🗺️ ${placeName} (${zoneName})</span>
                             </div>
-                            <div style="font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 12px; border-bottom: 1px solid #334155; padding-bottom: 8px;">推計満足度: ${avgScore} / 5.0</div>
+                            <div style="display: flex; gap: 16px; font-size: 14px; font-weight: 700; margin-bottom: 12px; border-bottom: 1px solid #334155; padding-bottom: 12px;">
+                                <span style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(16, 185, 129, 0.3);">原因レイヤー：${causeAvg} <span style="font-size: 11px; opacity: 0.7; font-weight: normal;">/ 5.0</span></span>
+                                <span style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6; padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(139, 92, 246, 0.3);">結果レイヤー：${resultAvg} <span style="font-size: 11px; opacity: 0.7; font-weight: normal;">/ 5.0</span></span>
+                            </div>
                             
                             <div style="margin-bottom: 16px;">
                                 <strong style="color: #34d399; font-size: 14px;">【全体所感・第一印象】</strong><br>
