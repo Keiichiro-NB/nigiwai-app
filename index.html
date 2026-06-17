@@ -9,6 +9,7 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script src="data-service.js"></script>
     <script src="init-data.js"></script>
     <script src="data-store.js"></script>
 </head>
@@ -236,12 +237,12 @@
     <script src="dashboard.js"></script>
     <script src="auth.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const places = JSON.parse(localStorage.getItem('sys_places') || '[]');
+        document.addEventListener('DOMContentLoaded', async () => {
+            const places = await DataService.getPlaces();
             const elPlaceCount = document.getElementById('dash-place-count');
             if(elPlaceCount) elPlaceCount.textContent = places.length;
 
-            const evals = JSON.parse(localStorage.getItem('sys_evaluations') || '[]');
+            const evals = await DataService.getEvaluations();
             const humanEvals = evals.filter(e => e.source === 'Human');
             const aiEvals = evals.filter(e => e.source && e.source.startsWith('AI'));
 

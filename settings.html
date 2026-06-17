@@ -362,16 +362,17 @@
         <i data-lucide="check-circle"></i> LocalStorageに設定を保存しました
     </div>
 
+    <script src="data-service.js"></script>
     <script>
         lucide.createIcons();
 
         // ログインゲートの処理
-        function checkAuth() {
+        async function checkAuth() {
             const pwd = document.getElementById('adminPwd').value;
             if(pwd === '1234') { // デモ用パスワード
                 document.getElementById('login-gate').style.display = 'none';
                 document.getElementById('settings-content').style.display = 'block';
-                loadSettings(); // 認証成功時に保存されている設定を読み込む
+                await loadSettings(); // 認証成功時に保存されている設定を読み込む
             } else {
                 document.getElementById('error-msg').style.display = 'block';
                 document.getElementById('adminPwd').value = '';
@@ -406,11 +407,12 @@
         let placesData = [];
         let currentPlaceId = null;
 
-        function migrateOldData() {
+        async function migrateOldData() {
             // 旧バージョンのデータがあれば新バージョンへ移行
-            const oldName = localStorage.getItem('sys_place_name');
-            if (oldName && !localStorage.getItem('sys_places')) {
-                const oldConcept = localStorage.getItem('sys_place_concept') || '';
+            const oldName = DataService.getLocalSetting('sys_place_name');
+            const places = await DataService.getPlaces();
+            if (oldName && places.length === 0) {
+                const oldConcept = DataService.getLocalSetting('sys_place_concept') || '';
                 placesData = [{
                     id: 'mebks-toyosu', // デフォルトID
                     name: oldName,
@@ -422,7 +424,7 @@
                     ]
                 }];
                 // 移行後、旧データは消さないが新データとして保存
-                localStorage.setItem('sys_places', JSON.stringify(placesData));
+                await DataService.savePlaces(placesData);
             }
         }
 
@@ -755,12 +757,12 @@
         }
 
         // LocalStorageへの一括保存処理
-        function saveSettings() {
+        async function saveSettings() {
             updateCurrentPlace();
             updateCurrentPersona();
             
             // Placeデータ
-            localStorage.setItem('sys_places', JSON.stringify(placesData));
+            await DataService.savePlaces(placesData);
             // Indicatorデータ (init-data.js と全く同じ5属性のみを過不足なく保存)
             const cleanIndicators = indicatorsData.map(ind => ({
                 id: ind.id,
@@ -769,7 +771,7 @@
                 category: ind.category,
                 assetId: ind.assetId
             }));
-            localStorage.setItem('nigiwai_indicators', JSON.stringify(cleanIndicators));
+            await DataService.saveIndicators(cleanIndicators);
             
             // Personaデータ (7属性のみを過不足なく保存)
             const cleanPersonas = personasData.map(p => ({
@@ -781,30 +783,30 @@
                 comfort: p.comfort,
                 emotional: p.emotional
             }));
-            localStorage.setItem('nigiwai_personas', JSON.stringify(cleanPersonas));
+            await DataService.savePersonas(cleanPersonas);
 
             // API連携
-            localStorage.setItem('gemini_api_key', document.getElementById('geminiApiKey').value);
-            localStorage.setItem('auphonic_api_key', document.getElementById('auphonicKey').value);
-            localStorage.setItem('auphonic_preset_id', document.getElementById('auphonicPreset').value);
-            localStorage.setItem('auphonic_webhook_url', document.getElementById('webhookUrl').value);
-            localStorage.setItem('sys_backup_interval', document.getElementById('backupInterval').value);
+            DataService.setLocalSetting('gemini_api_key', document.getElementById('geminiApiKey').value);
+            DataService.setLocalSetting('auphonic_api_key', document.getElementById('auphonicKey').value);
+            DataService.setLocalSetting('auphonic_preset_id', document.getElementById('auphonicPreset').value);
+            DataService.setLocalSetting('auphonic_webhook_url', document.getElementById('webhookUrl').value);
+            DataService.setLocalSetting('sys_backup_interval', document.getElementById('backupInterval').value);
 
             // 組織データ
-            localStorage.setItem('sys_tenant_id', document.getElementById('tenantId').value);
-            localStorage.setItem('sys_org_name', document.getElementById('orgName').value);
+            DataService.setLocalSetting('sys_tenant_id', document.getElementById('tenantId').value);
+            DataService.setLocalSetting('sys_org_name', document.getElementById('orgName').value);
 
             showToast();
         }
 
         // LocalStorageからの読み込み処理
-        function loadSettings() {
+        async function loadSettings() {
             // API連携
-            const geminiApiKey = localStorage.getItem('gemini_api_key');
-            const apiKey = localStorage.getItem('auphonic_api_key');
-            const presetId = localStorage.getItem('auphonic_preset_id');
-            const webhookUrl = localStorage.getItem('auphonic_webhook_url');
-            const backupInt = localStorage.getItem('sys_backup_interval');
+            const geminiApiKey = DataService.getLocalSetting('gemini_api_key');
+            const apiKey = DataService.getLocalSetting('auphonic_api_key');
+            const presetId = DataService.getLocalSetting('auphonic_preset_id');
+            const webhookUrl = DataService.getLocalSetting('auphonic_webhook_url');
+            const backupInt = DataService.getLocalSetting('sys_backup_interval');
             
             if(geminiApiKey) document.getElementById('geminiApiKey').value = geminiApiKey;
             if(apiKey) document.getElementById('auphonicKey').value = apiKey;
@@ -813,13 +815,8 @@
             if(backupInt) document.getElementById('backupInterval').value = backupInt;
 
             // マスタデータ
-            migrateOldData();
-            const savedPlaces = localStorage.getItem('sys_places');
-            if (savedPlaces) {
-                try {
-                    placesData = JSON.parse(savedPlaces);
-                } catch(e) { console.error(e); placesData = []; }
-            }
+            await migrateOldData();
+            placesData = await DataService.getPlaces();
             
             if (placesData.length > 0) {
                 selectPlace(placesData[0].id);
@@ -828,25 +825,17 @@
             }
 
             // 指標データ
-            const savedIndicators = localStorage.getItem('nigiwai_indicators');
-            if (savedIndicators) {
-                try {
-                    indicatorsData = JSON.parse(savedIndicators);
-                    // init-data.js に初期設定されている英語の 'marche' を日本語の 'マルシェ' に自動補正
-                    indicatorsData.forEach(ind => {
-                        if (ind.assetId === 'marche') ind.assetId = 'マルシェ';
-                    });
-                } catch(e) { console.error(e); indicatorsData = []; }
+            indicatorsData = await DataService.getIndicators();
+            if (indicatorsData.length > 0) {
+                // init-data.js に初期設定されている英語の 'marche' を日本語の 'マルシェ' に自動補正
+                indicatorsData.forEach(ind => {
+                    if (ind.assetId === 'marche') ind.assetId = 'マルシェ';
+                });
             }
             renderIndicatorList();
 
             // ペルソナデータ
-            const savedPersonas = localStorage.getItem('nigiwai_personas');
-            if (savedPersonas) {
-                try {
-                    personasData = JSON.parse(savedPersonas);
-                } catch(e) { console.error(e); personasData = []; }
-            }
+            personasData = await DataService.getPersonas();
             if (personasData.length > 0) {
                 selectPersona(personasData[0].id);
             } else {
@@ -854,12 +843,12 @@
             }
 
             // 組織データ
-            const tenantId = localStorage.getItem('sys_tenant_id');
-            const orgName = localStorage.getItem('sys_org_name');
+            const tenantId = DataService.getLocalSetting('sys_tenant_id');
+            const orgName = DataService.getLocalSetting('sys_org_name');
             if(tenantId) document.getElementById('tenantId').value = tenantId;
             if(orgName) document.getElementById('orgName').value = orgName;
             
-            renderMaintenanceTable();
+            await renderMaintenanceTable();
         }
 
 
@@ -896,12 +885,12 @@
             return zoneId;
         }
 
-        function renderMaintenanceTable() {
+        async function renderMaintenanceTable() {
             const tbody = document.getElementById('maintenanceTableBody');
             if (!tbody) return;
             tbody.innerHTML = '';
 
-            const evals = JSON.parse(localStorage.getItem('sys_evaluations') || '[]');
+            const evals = await DataService.getEvaluations();
             if (evals.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--admin-muted); padding: 20px;">登録されている評価データはありません</td></tr>';
                 return;
@@ -940,7 +929,7 @@
             });
         }
 
-        function deleteSelectedEvals() {
+        async function deleteSelectedEvals() {
             const checkboxes = document.querySelectorAll('.eval-select-checkbox:checked');
             if (checkboxes.length === 0) {
                 alert('削除するデータを選択してください。');
@@ -948,13 +937,13 @@
             }
 
             if (confirm(`選択された ${checkboxes.length} 件の評価データを削除しますか？`)) {
-                let evals = JSON.parse(localStorage.getItem('sys_evaluations') || '[]');
+                let evals = await DataService.getEvaluations();
                 const targetIds = Array.from(checkboxes).map(cb => cb.getAttribute('data-id'));
                 
                 evals = evals.filter(ev => !targetIds.includes(ev.id));
-                localStorage.setItem('sys_evaluations', JSON.stringify(evals));
+                await DataService.saveEvaluations(evals);
                 
-                renderMaintenanceTable();
+                await renderMaintenanceTable();
                 document.getElementById('th-eval-select-all').checked = false;
                 
                 // トースト通知の表示
@@ -962,14 +951,14 @@
             }
         }
 
-        function exportSelectedEvals() {
+        async function exportSelectedEvals() {
             const checkboxes = document.querySelectorAll('.eval-select-checkbox:checked');
             if (checkboxes.length === 0) {
                 alert('出力するデータを選択してください。');
                 return;
             }
 
-            let evals = JSON.parse(localStorage.getItem('sys_evaluations') || '[]');
+            let evals = await DataService.getEvaluations();
             const targetIds = Array.from(checkboxes).map(cb => cb.getAttribute('data-id'));
             const targetEvals = evals.filter(ev => targetIds.includes(ev.id));
 
@@ -1041,9 +1030,9 @@
             if (masterCb) masterCb.checked = false;
         }
 
-        function insertDemoEvals() {
+        async function insertDemoEvals() {
             if (confirm('デモ用の初期サンプルデータ（10件）を新しく投入しますか？\\n（※既存のデータがある場合は、消去されずに末尾に追加されます）')) {
-                let evals = JSON.parse(localStorage.getItem('sys_evaluations') || '[]');
+                let evals = await DataService.getEvaluations();
                 const validNames = ['田中太郎', '鈴木一郎', '佐藤花子', '高橋次郎', '小林誠', '渡辺健', '伊藤明', '山本香', '中村洋', '小川由美'];
                 const validTimes = ['午前', '昼', '午後', '夕方', '夜'];
                 const today = new Date().toISOString().split('T')[0];
@@ -1069,8 +1058,8 @@
                         comment: `手動投入されたデモデータ（${timeCategory}の評価）です。`
                     });
                 }
-                localStorage.setItem('sys_evaluations', JSON.stringify(evals));
-                renderMaintenanceTable();
+                await DataService.saveEvaluations(evals);
+                await renderMaintenanceTable();
             }
         }
     </script>

@@ -104,6 +104,7 @@
     <!-- トースト通知 -->
     <div id="toast" class="toast-mobile"><i data-lucide="check"></i> 保存しました</div>
 
+    <script src="data-service.js"></script>
     <script>
         // タブ切り替えロジック
         function switchTab(tabId) {
@@ -128,7 +129,7 @@
         }
 
         // 送信処理（実際のDB/LocalStorageへ登録）
-        function submitEvaluation() {
+        async function submitEvaluation() {
             const btn = document.querySelector('.btn-submit');
             const originalHtml = btn.innerHTML;
             
@@ -211,12 +212,12 @@
             };
 
             try {
-                let evaluations = JSON.parse(localStorage.getItem('sys_evaluations') || '[]');
+                let evaluations = await DataService.getEvaluations();
                 evaluations.push(evalData);
-                localStorage.setItem('sys_evaluations', JSON.stringify(evaluations));
+                await DataService.saveEvaluations(evaluations);
                 
                 // 送信完了後に古い一時保存（ドラフト）をクリーンアップ
-                localStorage.removeItem('nigiwai_draft');
+                DataService.setLocalSetting('nigiwai_draft', null);
             } catch(e) {
                 console.error("Failed to save evaluation to DB", e);
                 alert("データの保存に失敗しました。");
@@ -240,17 +241,6 @@
         let currentIndicators = [];
         
         function renderDynamicCards(locationId) {
-            const savedIndicators = localStorage.getItem('nigiwai_indicators');
-            if(savedIndicators) {
-                currentIndicators = JSON.parse(savedIndicators);
-                // init-data.js に初期設定されている英語の 'marche' を日本語の 'マルシェ' に自動補正
-                currentIndicators.forEach(ind => {
-                    if (ind.assetId === 'marche') ind.assetId = 'マルシェ';
-                });
-            } else {
-                currentIndicators = []; // no indicators
-            }
-            
             // 選択されたPlaceのアセット種別を取得
             let assetType = '';
             if(locationId) {
@@ -329,26 +319,20 @@
         let nigiwaiPlaces = [];
 
         // 対象地(Place)の読み込みとセレクトボックスの初期化
-        function initPlaces() {
-            const savedPlaces = localStorage.getItem('sys_places');
+        function initPlacesUI() {
             const locationSelect = document.getElementById('eval-location');
             
-            if (savedPlaces) {
-                try {
-                    nigiwaiPlaces = JSON.parse(savedPlaces);
-                    locationSelect.innerHTML = '<option value="">選択してください</option>';
-                    nigiwaiPlaces.forEach(place => {
-                        const option = document.createElement('option');
-                        option.value = place.id;
-                        option.textContent = place.name;
-                        locationSelect.appendChild(option);
-                    });
-                } catch(e) {
-                    console.error("Failed to parse sys_places", e);
-                }
+            if (nigiwaiPlaces.length > 0) {
+                locationSelect.innerHTML = '<option value="">選択してください</option>';
+                nigiwaiPlaces.forEach(place => {
+                    const option = document.createElement('option');
+                    option.value = place.id;
+                    option.textContent = place.name;
+                    locationSelect.appendChild(option);
+                });
             } else {
                 // 旧バージョンのデータがあるか確認
-                const oldName = localStorage.getItem('sys_place_name');
+                const oldName = DataService.getLocalSetting('sys_place_name');
                 if (oldName) {
                     locationSelect.innerHTML = `<option value="">選択してください</option><option value="mebks-toyosu">${oldName}</option>`;
                 }
@@ -382,8 +366,8 @@
             renderDynamicCards(selectedLocation);
         }
 
-        // 一時保存 (LocalStorage)
-        async function saveDraft() {
+        // 一時保存 (LocalStorage限定)
+        function saveDraft() {
             const btn = document.querySelector('.btn-draft');
             const originalHtml = btn.innerHTML;
             btn.innerHTML = '<i data-lucide="loader"></i> 保存中...';
@@ -423,7 +407,7 @@
             });
 
             try {
-                localStorage.setItem('nigiwai_draft', JSON.stringify(draftData));
+                DataService.setLocalSetting('nigiwai_draft', JSON.stringify(draftData));
                 showToast();
             } catch (e) {
                 console.error(e);
@@ -435,7 +419,7 @@
 
         // 保存データの復元
         function loadDraft() {
-            const savedData = localStorage.getItem('nigiwai_draft');
+            const savedData = DataService.getLocalSetting('nigiwai_draft');
             if (!savedData) return;
 
             try {
@@ -583,17 +567,29 @@
             }, 3000);
         }
 
-        // ページ読み込み時の初期化処理
-        document.addEventListener('DOMContentLoaded', () => {
-            initPlaces();
+        // 初期化（マスターデータのロード）
+        async function initInputPage() {
+            nigiwaiPlaces = await DataService.getPlaces();
+            currentIndicators = await DataService.getIndicators();
+            
+            // init-data.js に初期設定されている英語の 'marche' を日本語の 'マルシェ' に自動補正
+            currentIndicators.forEach(ind => {
+                if (ind.assetId === 'marche') ind.assetId = 'マルシェ';
+            });
+            
+            initPlacesUI();
             renderDynamicCards(''); // 初期は全て代表指標等を描画
             loadDraft();
-        });
+            lucide.createIcons();
+        }
 
-        // --- ここまで追加 ---
-        
-        // Lucideアイコンの初期化
-        lucide.createIcons();
+        // ページ読み込み時の実行
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initInputPage);
+        } else {
+            initInputPage();
+        }
+
     </script>
     <script src="auth.js"></script>
 </body>

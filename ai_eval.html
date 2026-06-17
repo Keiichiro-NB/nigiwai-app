@@ -196,6 +196,7 @@
     </div>
     <style>@keyframes spin { 100% { transform: rotate(360deg); } }</style>
 
+    <script src="data-service.js"></script>
     <script>
         lucide.createIcons();
 
@@ -204,16 +205,15 @@
         let generatedEvaluations = [];
         let selectedAudioMock = null;
 
-        document.addEventListener('DOMContentLoaded', () => {
-            initPlaces();
-            initPersonas();
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initPlaces();
+            await initPersonas();
         });
 
-        function initPlaces() {
-            const savedPlaces = localStorage.getItem('sys_places');
+        async function initPlaces() {
+            nigiwaiPlaces = await DataService.getPlaces();
             const locationSelect = document.getElementById('eval-location');
-            if (savedPlaces) {
-                nigiwaiPlaces = JSON.parse(savedPlaces);
+            if (nigiwaiPlaces.length > 0) {
                 locationSelect.innerHTML = '<option value="">選択してください</option>';
                 nigiwaiPlaces.forEach(place => {
                     const option = document.createElement('option');
@@ -264,16 +264,10 @@
             }
         }
 
-        function initPersonas() {
-            const saved = localStorage.getItem('nigiwai_personas');
+        async function initPersonas() {
+            aiPersonas = await DataService.getPersonas();
             const container = document.getElementById('personaListContainer');
-            if (saved) {
-                aiPersonas = JSON.parse(saved);
-                if(aiPersonas.length === 0) {
-                    container.innerHTML = '<p style="color: #ef4444; font-size: 13px;">ペルソナが登録されていません。システム設定から追加してください。</p>';
-                    return;
-                }
-                
+            if (aiPersonas.length > 0) {
                 let html = '';
                 aiPersonas.forEach((p, idx) => {
                     html += `
@@ -337,7 +331,7 @@
             const container = document.getElementById('resultsContainer');
             container.innerHTML = '';
             
-            const indicators = JSON.parse(localStorage.getItem('nigiwai_indicators') || '[]');
+            const indicators = await DataService.getIndicators();
             
             // init-data.js の初期英語ID（marche）を日本語（マルシェ）に自動補正する安全弁を追加
             indicators.forEach(ind => {
@@ -348,7 +342,7 @@
             const finalPlaceName = place ? place.name : placeId; 
             const assetType = place ? place.asset : 'マルシェ';
             
-            const geminiApiKey = (localStorage.getItem('gemini_api_key') || '').trim();
+            const geminiApiKey = (DataService.getLocalSetting('gemini_api_key') || '').trim();
             if (!geminiApiKey) {
                 alert('APIキーがシステム設定に登録されていません。設定画面で登録してください。');
                 return;
@@ -536,25 +530,21 @@ ${validIndicators.map(ind => `ID:${ind.id} - 名称:${ind.name} (区分:${ind.ty
             lucide.createIcons();
         }
 
-        function saveToDB() {
+        async function saveToDB() {
             if(generatedEvaluations.length === 0) return;
 
             const btn = document.querySelector('#resultsSection .btn-submit');
             btn.innerHTML = '<i data-lucide="check-circle"></i> 登録完了！';
             btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
 
-            let dbEvals = [];
-            const stored = localStorage.getItem('sys_evaluations');
-            if(stored) {
-                dbEvals = JSON.parse(stored);
-            }
+            let dbEvals = await DataService.getEvaluations();
 
             generatedEvaluations.forEach(ev => {
                 delete ev.avgScore; 
                 dbEvals.push(ev);
             });
 
-            localStorage.setItem('sys_evaluations', JSON.stringify(dbEvals));
+            await DataService.saveEvaluations(dbEvals);
 
             setTimeout(() => {
                 window.location.href = 'index.html';

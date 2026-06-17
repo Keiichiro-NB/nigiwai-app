@@ -5,14 +5,12 @@ let causeRadarChart = null;
 let resultRadarChart = null;
 let currentL2Data = null;
 
-function getPlaceName(placeId) {
-    const places = JSON.parse(localStorage.getItem('sys_places') || '[]');
+function getPlaceName(places, placeId) {
     const p = places.find(x => x.id === placeId);
     return p ? p.name : placeId;
 }
 
-function getZoneName(placeId, zoneId) {
-    const places = JSON.parse(localStorage.getItem('sys_places') || '[]');
+function getZoneName(places, placeId, zoneId) {
     const p = places.find(x => x.id === placeId);
     if(p && p.zones) {
         const z = p.zones.find(x => x.id === zoneId);
@@ -36,9 +34,9 @@ function mapTimeCategory(timeStr) {
     return timeStr;
 }
 
-function renderDashboard() {
-    const places = JSON.parse(localStorage.getItem('sys_places') || '[]');
-    const evals = JSON.parse(localStorage.getItem('sys_evaluations') || '[]');
+async function renderDashboard() {
+    const places = await DataService.getPlaces();
+    const evals = await DataService.getEvaluations();
     
     // 時間の互換性マッピング
     evals.forEach(ev => ev.time = mapTimeCategory(ev.time));
@@ -104,7 +102,7 @@ function renderDashboard() {
         tr.innerHTML = `
             <td style="padding: 12px 16px;">${row.placeId}</td>
             <td style="padding: 12px 16px;">${row.date} ${row.time}</td>
-            <td style="padding: 12px 16px;">${getZoneName(row.placeId, row.zoneId)}</td>
+            <td style="padding: 12px 16px;">${getZoneName(places, row.placeId, row.zoneId)}</td>
             <td style="padding: 12px 16px; font-weight: bold; color: #3b82f6;">${avgTotal}</td>
             <td style="padding: 12px 16px;">${row.evaluators} 名/AI</td>
         `;
@@ -113,8 +111,8 @@ function renderDashboard() {
 }
 
 // L2 View Logic
-function openL2(rowData) {
-    const allEvals = JSON.parse(localStorage.getItem('sys_evaluations') || '[]');
+async function openL2(rowData) {
+    const allEvals = await DataService.getEvaluations();
     const placeEvals = allEvals.filter(e => e.placeId === rowData.placeId);
     
     currentL2Data = {
@@ -128,8 +126,8 @@ function openL2(rowData) {
     document.getElementById('l2-detail-section').style.display = 'block';
     document.getElementById('l2-title-target').innerText = `${rowData.placeId} - 詳細分析`;
     
-    initL2Filters();
-    renderL2ChartsAndScores();
+    await initL2Filters();
+    await renderL2ChartsAndScores();
 
     // Scroll to L2
     document.getElementById('l2-detail-section').scrollIntoView({ behavior: 'smooth' });
@@ -156,8 +154,9 @@ function openInsightReport() {
     }
 }
 
-function initL2Filters() {
+async function initL2Filters() {
     const evals = currentL2Data.allEvals;
+    const places = await DataService.getPlaces();
     
     // Get unique zones
     const zones = [...new Set(evals.map(e => e.zoneId))].filter(Boolean);
@@ -166,7 +165,7 @@ function initL2Filters() {
     zones.forEach(z => {
         const opt = document.createElement('option');
         opt.value = z;
-        opt.text = getZoneName(currentL2Data.placeId, z);
+        opt.text = getZoneName(places, currentL2Data.placeId, z);
         opt.style.color = 'black';
         if (z === currentL2Data.initialZone) opt.selected = true;
         elZone.appendChild(opt);
@@ -217,7 +216,7 @@ function initL2Filters() {
     });
 }
 
-function renderL2ChartsAndScores() {
+async function renderL2ChartsAndScores() {
     if(!currentL2Data) return;
 
     const elZone = document.getElementById('l2-filter-zone');
@@ -252,14 +251,16 @@ function renderL2ChartsAndScores() {
     
     currentL2Data.filteredEvals = filteredEvals;
     
-    const indicators = JSON.parse(localStorage.getItem('nigiwai_indicators') || '[]');
+    const indicators = await DataService.getIndicators();
     // 動的表示：その対象地のアセットに紐づく指標のみ
     indicators.forEach(ind => {
         if (ind.assetId === 'marche') ind.assetId = ['マルシェ'];
         else if (typeof ind.assetId === 'string' && ind.assetId !== 'all') ind.assetId = [ind.assetId];
     });
     
-    const place = JSON.parse(localStorage.getItem('sys_places') || '[]').find(p => p.id === currentL2Data.placeId);
+    const places = await DataService.getPlaces();
+    const personas = await DataService.getPersonas();
+    const place = places.find(p => p.id === currentL2Data.placeId);
     const assetType = place ? place.asset : '';
 
     const validIndicators = indicators.filter(ind => {
@@ -341,8 +342,8 @@ function renderL2ChartsAndScores() {
         } else {
             evalsWithContent.forEach(ev => {
                 const dateStr = ev.date || ev.timestamp.split('T')[0];
-                const placeName = getPlaceName(ev.placeId);
-                const zoneName = getZoneName(ev.placeId, ev.zoneId);
+                const placeName = getPlaceName(places, ev.placeId);
+                const zoneName = getZoneName(places, ev.placeId, ev.zoneId);
                 
                 // AI判定
                 if (ev.source && ev.source.startsWith('AI')) {
@@ -401,8 +402,7 @@ function renderL2ChartsAndScores() {
                     const causeHtml = causeText ? parseLinesToTable(causeText) : '<p style="color: #94a3b8;">データなし</p>';
                     const resultHtml = resultText ? parseLinesToTable(resultText) : '<p style="color: #94a3b8;">データなし</p>';
                     
-                    // ペルソナ属性の抽出（設定画面のストレージから）
-                    const personas = JSON.parse(localStorage.getItem('nigiwai_personas') || '[]');
+                    // ペルソナ属性の抽出
                     const personaObj = personas.find(p => p.name === personaName);
                     const pAttr = personaObj ? personaObj.attributes : 'ペルソナ';
 
@@ -613,7 +613,7 @@ function renderScoreEditors(containerId, inds, scoreDataMap) {
 }
 
 // L2 Inline Edit Logic
-function overrideScore(inputElem) {
+async function overrideScore(inputElem) {
     const indId = inputElem.getAttribute('data-ind-id');
     let newVal = parseFloat(inputElem.value);
     
@@ -628,7 +628,7 @@ function overrideScore(inputElem) {
     }
     
     if(confirm('現在表示されているフィルタ済みの全評価データに対して、この指標のスコアを上書き保存しますか？')) {
-        const evals = JSON.parse(localStorage.getItem('sys_evaluations') || '[]');
+        const evals = await DataService.getEvaluations();
         
         const targetIds = currentL2Data.filteredEvals.map(e => e.id);
         
@@ -639,10 +639,10 @@ function overrideScore(inputElem) {
             }
         });
         
-        localStorage.setItem('sys_evaluations', JSON.stringify(evals));
+        await DataService.saveEvaluations(evals);
         
         // 再描画
-        renderDashboard(); // L1 update
+        await renderDashboard(); // L1 update
         
         // currentL2Data の allEvals も更新
         currentL2Data.allEvals.forEach(ev => {
@@ -652,14 +652,23 @@ function overrideScore(inputElem) {
             }
         });
         
-        renderL2ChartsAndScores();
+        await renderL2ChartsAndScores();
         
         alert('スコアを上書き保存しました。');
     } else {
-        renderL2ChartsAndScores();
+        await renderL2ChartsAndScores();
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    renderDashboard();
-});
+async function initDashboard() {
+    if (typeof initializeDemoData === 'function') {
+        await initializeDemoData();
+    }
+    await renderDashboard();
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initDashboard);
+} else {
+    initDashboard();
+}

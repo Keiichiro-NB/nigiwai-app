@@ -9,7 +9,7 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="init-data.js"></script>
-    <script src="data-store.js"></script>
+    <script src="data-service.js"></script>
     <style>
         .report-header {
             background: rgba(30, 41, 59, 0.6);
@@ -364,14 +364,14 @@
             return timeStr;
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            initFilters();
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initFilters();
             
             // Check URL params
             const params = new URLSearchParams(window.location.search);
             if(params.has('placeId')) {
                 document.getElementById('report-place').value = params.get('placeId');
-                onPlaceChange();
+                await onPlaceChange();
                 // Optionally select all and generate
                 setTimeout(() => {
                     const elZones = document.getElementById('report-zones');
@@ -387,8 +387,8 @@
             }
         });
 
-        function initFilters() {
-            const places = JSON.parse(localStorage.getItem('sys_places') || '[]');
+        async function initFilters() {
+            const places = await DataService.getPlaces();
             const elPlace = document.getElementById('report-place');
             elPlace.innerHTML = '<option value="">-- 対象地を選択 --</option>';
             places.forEach(p => {
@@ -399,14 +399,14 @@
             });
         }
 
-        function onPlaceChange() {
+        async function onPlaceChange() {
             const placeId = document.getElementById('report-place').value;
             const elZones = document.getElementById('report-zones');
             elZones.innerHTML = '';
             
             if(!placeId) return;
 
-            const places = JSON.parse(localStorage.getItem('sys_places') || '[]');
+            const places = await DataService.getPlaces();
             const place = places.find(p => p.id === placeId);
             
             if(place) {
@@ -429,7 +429,7 @@
             }
         }
 
-        function generateReport() {
+        async function generateReport() {
             const placeId = document.getElementById('report-place').value;
             const selectedZones = Array.from(document.getElementById('report-zones').selectedOptions).map(o => o.value);
             const selectedTimes = Array.from(document.getElementById('report-times').selectedOptions).map(o => o.value);
@@ -442,12 +442,12 @@
             document.getElementById('empty-state').style.display = 'none';
             document.getElementById('report-content').style.display = 'grid';
 
-            const places = JSON.parse(localStorage.getItem('sys_places') || '[]');
+            const places = await DataService.getPlaces();
             const place = places.find(p => p.id === placeId);
             const assetType = place ? place.asset : '';
             document.getElementById('asset-name-label').innerText = assetType || 'アセット未設定';
 
-            const allEvals = JSON.parse(localStorage.getItem('sys_evaluations') || '[]');
+            const allEvals = await DataService.getEvaluations();
             allEvals.forEach(ev => ev.time = mapTimeCategory(ev.time));
             
             // Target Data
@@ -464,7 +464,7 @@
             });
 
             // Indicators
-            const indicators = JSON.parse(localStorage.getItem('nigiwai_indicators') || '[]');
+            const indicators = await DataService.getIndicators();
             // 動的表示：その対象地のアセットに紐づく指標のみ
             indicators.forEach(ind => {
                 if (ind.assetId === 'marche') ind.assetId = ['マルシェ'];
