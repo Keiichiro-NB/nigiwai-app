@@ -80,19 +80,35 @@ body {
     border-bottom: none;
 }
 
-.tab-btn.active {
-    background: rgba(59, 130, 246, 0.15);
-    color: var(--accent-color);
-    border-color: rgba(59, 130, 246, 0.3);
+.tab-btn.active[data-tab="cause"] {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border-color: rgba(16, 185, 129, 0.3);
     position: relative;
 }
 
-.tab-btn.active::after {
+.tab-btn.active[data-tab="cause"]::after {
     content: '';
     position: absolute;
     bottom: -1px; left: 0; right: 0;
     height: 3px;
-    background: var(--accent-color);
+    background: #10b981;
+    border-radius: 3px 3px 0 0;
+}
+
+.tab-btn.active[data-tab="result"] {
+    background: rgba(139, 92, 246, 0.15);
+    color: #8b5cf6;
+    border-color: rgba(139, 92, 246, 0.3);
+    position: relative;
+}
+
+.tab-btn.active[data-tab="result"]::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 0; right: 0;
+    height: 3px;
+    background: #8b5cf6;
     border-radius: 3px 3px 0 0;
 }
 
