@@ -315,10 +315,47 @@ async function renderL2ChartsAndScores() {
     const getAvg = (vals) => vals.length > 0 ? (vals.reduce((a,b)=>a+b,0) / vals.length) : 0;
     
     // 頂点のラベルを「01好立地」のように数字と略称を組み合わせた形式に変更
-    const causeLabels = causeInds.map(i => String(i.id).padStart(2, '0') + (i.shortName || ''));
+    const getShortName = (ind) => {
+        if (ind.shortName && ind.shortName.trim() !== '') return ind.shortName;
+        const name = ind.name || '';
+        const isResult = (ind.type === 'effect' || ind.type === 'result');
+        
+        if (name.includes('アクセス') || name.includes('訪れやすい')) return 'アクセス性';
+        if (name.includes('イベント') && (name.includes('企画') || name.includes('開催'))) return 'イベント企画';
+        if (name.includes('イベント') && (name.includes('定期') || name.includes('計画'))) return 'イベント計画';
+        if (name.includes('ターゲット') || name.includes('コンセプト')) return 'コンセプト';
+        if (name.includes('ルール')) return '利用ルール';
+        if (name.includes('ベンチ') || name.includes('休憩')) return isResult ? '休憩風景' : '休憩空間';
+        if (name.includes('ユニバーサル') || name.includes('アメニティ')) return 'ユニバーサル';
+        if (name.includes('テナント') && (name.includes('誘致') || name.includes('集客'))) return 'テナント誘致';
+        if (name.includes('テナント') && (name.includes('オペレーション') || name.includes('運営'))) return '店舗運営';
+        if (name.includes('五感') || name.includes('刺激')) return '五感刺激';
+        if (name.includes('飲食環境')) return isResult ? '飲食風景' : '飲食環境';
+        if (name.includes('目的') || name.includes('属性') || name.includes('多様性')) return '多様客層';
+        if (name.includes('流入')) return '人の流入';
+        if (name.includes('長く滞在') || name.includes('滞在時間')) return '長期滞在';
+        if (name.includes('人口密度') || name.includes('混雑')) return '人口密度';
+        if (name.includes('活気') || name.includes('笑い声')) return (name.includes('店員') || name.includes('購買')) ? '弾む会話' : '音・活気';
+        if (name.includes('回遊')) return '人の回遊';
+        if (name.includes('客単価') || name.includes('購買')) return '活発な購買';
+        if (name.includes('BGM')) return '心地よいBGM';
+        if (name.includes('呼び込み') || name.includes('接客')) return '活発な接客';
+        if (name.includes('盛り上がり') || name.includes('盛況')) return 'イベント盛況';
+
+        let text = name.replace(/【.*?】|\[.*?\]|\(.*?\)|（.*?）/g, '');
+        const keywords = text.match(/[一-龯ァ-ンヴーA-Za-z0-9]+/g);
+        if (keywords && keywords.length > 0) {
+            let result = keywords.join('');
+            if (result.length > 0) return result.substring(0, 5);
+        }
+        let clean = text.replace(/[のにおをはがとでやへ！？、。]/g, '');
+        return clean.substring(0, 5) || name.substring(0, 5);
+    };
+
+    const causeLabels = causeInds.map(i => String(i.id).padStart(2, '0') + getShortName(i));
     const causeData = causeInds.map(i => getAvg(causeScores[i.id].vals));
     
-    const resultLabels = resultInds.map(i => String(i.id).padStart(2, '0') + (i.shortName || ''));
+    const resultLabels = resultInds.map(i => String(i.id).padStart(2, '0') + getShortName(i));
     const resultData = resultInds.map(i => getAvg(resultScores[i.id].vals));
 
     // Render Charts
@@ -590,7 +627,9 @@ function renderLegend(containerId, inds) {
         const row = document.createElement('div');
         row.style.display = 'flex';
         row.style.gap = '8px';
-        row.innerHTML = `<span style="color: ${numColor}; font-family: monospace; font-weight: bold;">${idStr}</span> <span style="color: ${textColor};">${ind.name}</span>`;
+        row.style.alignItems = 'flex-start';
+        row.style.lineHeight = '1.4';
+        row.innerHTML = `<span style="color: ${numColor}; font-family: monospace; font-weight: bold; flex-shrink: 0;">${idStr}</span> <span style="color: ${textColor}; word-break: keep-all;">${ind.name}</span>`;
         container.appendChild(row);
     });
 }
@@ -623,6 +662,9 @@ function drawRadar(canvasId, labels, data, color, chartInstanceRef, isModal = fa
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            layout: {
+                padding: window.innerWidth < 768 ? 16 : 10
+            },
             scales: {
                 r: {
                     min: 0,
@@ -630,7 +672,14 @@ function drawRadar(canvasId, labels, data, color, chartInstanceRef, isModal = fa
                     ticks: { display: false, stepSize: 1 },
                     grid: { color: isModal ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' },
                     angleLines: { color: isModal ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' },
-                    pointLabels: { color: isModal ? '#64748b' : '#cbd5e1', font: { size: 11 } }
+                    pointLabels: { 
+                        display: true,
+                        color: isModal ? '#475569' : '#cbd5e1', 
+                        font: { 
+                            size: window.innerWidth < 768 ? 10 : 12,
+                            weight: '500'
+                        } 
+                    }
                 }
             },
             plugins: { legend: { display: false } }

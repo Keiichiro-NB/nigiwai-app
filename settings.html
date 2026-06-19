@@ -137,6 +137,7 @@
                                 <th style="min-width: 150px;">紐づくアセット</th>
                                 <th style="min-width: 100px;">区分(原因/結果)</th>
                                 <th style="min-width: 250px;">指標名</th>
+                                <th style="min-width: 120px;">チャート用略称</th>
                                 <th style="min-width: 60px;">操作</th>
                             </tr>
                         </thead>
@@ -156,6 +157,7 @@
                                 <th style="min-width: 200px;">紐づくアセット (複数選択)</th>
                                 <th style="min-width: 100px;">区分(原因/結果)</th>
                                 <th style="min-width: 250px;">指標名</th>
+                                <th style="min-width: 120px;">チャート用略称</th>
                                 <th style="min-width: 60px;">操作</th>
                             </tr>
                         </thead>
@@ -620,6 +622,7 @@
                         </select>
                     </td>
                     <td><input type="text" value="${ind.name}" oninput="updateIndicator(${index}, 'name', this.value)" style="background:transparent; border:none; color:inherit; width: 100%; border-bottom: 1px solid var(--admin-border); padding: 4px;" placeholder="指標名"></td>
+                    <td><input type="text" id="ind_short_${index}" value="${ind.shortName || ''}" oninput="updateIndicator(${index}, 'shortName', this.value)" style="background:transparent; border:none; color:inherit; width: 100%; border-bottom: 1px solid var(--admin-border); padding: 4px;" placeholder="略称(5文字)"></td>
                     <td><button class="btn-icon" onclick="deleteIndicator(${index})"><i data-lucide="trash-2"></i></button></td>
                 `;
                 
@@ -644,9 +647,56 @@
             renderIndicatorList();
         }
 
+        function generateShortName(ind) {
+            const name = ind.name || '';
+            if (!name) return '';
+            const isResult = (ind.type === 'effect' || ind.type === 'result');
+            
+            if (name.includes('アクセス') || name.includes('訪れやすい')) return 'アクセス性';
+            if (name.includes('イベント') && (name.includes('企画') || name.includes('開催'))) return 'イベント企画';
+            if (name.includes('イベント') && (name.includes('定期') || name.includes('計画'))) return 'イベント計画';
+            if (name.includes('ターゲット') || name.includes('コンセプト')) return 'コンセプト';
+            if (name.includes('ルール')) return '利用ルール';
+            if (name.includes('ベンチ') || name.includes('休憩')) return isResult ? '休憩風景' : '休憩空間';
+            if (name.includes('ユニバーサル') || name.includes('アメニティ')) return 'ユニバーサル';
+            if (name.includes('テナント') && (name.includes('誘致') || name.includes('集客'))) return 'テナント誘致';
+            if (name.includes('テナント') && (name.includes('オペレーション') || name.includes('運営'))) return '店舗運営';
+            if (name.includes('五感') || name.includes('刺激')) return '五感刺激';
+            if (name.includes('飲食環境')) return isResult ? '飲食風景' : '飲食環境';
+            if (name.includes('目的') || name.includes('属性') || name.includes('多様性')) return '多様客層';
+            if (name.includes('流入')) return '人の流入';
+            if (name.includes('長く滞在') || name.includes('滞在時間')) return '長期滞在';
+            if (name.includes('人口密度') || name.includes('混雑')) return '人口密度';
+            if (name.includes('活気') || name.includes('笑い声')) return (name.includes('店員') || name.includes('購買')) ? '弾む会話' : '音・活気';
+            if (name.includes('回遊')) return '人の回遊';
+            if (name.includes('客単価') || name.includes('購買')) return '活発な購買';
+            if (name.includes('BGM')) return '心地よいBGM';
+            if (name.includes('呼び込み') || name.includes('接客')) return '活発な接客';
+            if (name.includes('盛り上がり') || name.includes('盛況')) return 'イベント盛況';
+
+            let text = name.replace(/【.*?】|\[.*?\]|\(.*?\)|（.*?）/g, '');
+            const keywords = text.match(/[一-龯ァ-ンヴーA-Za-z0-9]+/g);
+            if (keywords && keywords.length > 0) {
+                let result = keywords.join('');
+                if (result.length > 0) return result.substring(0, 5);
+            }
+            let clean = text.replace(/[のにおをはがとでやへ！？、。]/g, '');
+            return clean.substring(0, 5) || name.substring(0, 5);
+        }
+
         function updateIndicator(index, field, value) {
             if (indicatorsData[index]) {
                 indicatorsData[index][field] = value;
+                
+                if (field === 'name') {
+                    const currentShort = indicatorsData[index].shortName || '';
+                    if (currentShort.trim() === '') {
+                        const newShort = generateShortName(indicatorsData[index]);
+                        indicatorsData[index].shortName = newShort;
+                        const shortInput = document.getElementById(`ind_short_${index}`);
+                        if (shortInput) shortInput.value = newShort;
+                    }
+                }
             }
         }
 
@@ -763,10 +813,11 @@
             
             // Placeデータ
             await DataService.savePlaces(placesData);
-            // Indicatorデータ (init-data.js と全く同じ5属性のみを過不足なく保存)
+            // Indicatorデータ
             const cleanIndicators = indicatorsData.map(ind => ({
                 id: ind.id,
                 name: ind.name,
+                shortName: ind.shortName || '',
                 type: ind.type,
                 category: ind.category,
                 assetId: ind.assetId

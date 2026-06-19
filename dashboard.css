@@ -492,20 +492,135 @@ header {
     }
     
     .main-content {
-        padding: 24px 20px;
+        padding: 24px 16px;
     }
     
+    /* Requirement 1: Header area */
     header {
-        justify-content: flex-start;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 24px;
     }
     
     .header-title {
         flex: 1;
+        min-width: 0;
+    }
+    
+    .header-title h1 {
+        font-size: 20px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 4px;
+    }
+    
+    .header-title p {
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     
     .data-controls {
-        flex-wrap: wrap;
-        margin-top: 16px;
-        justify-content: flex-start;
+        width: 100%;
+        margin-top: 8px;
+        display: flex;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px !important;
+    }
+    
+    .data-controls > * {
+        width: 100%;
+        justify-content: center;
+        margin: 0 !important;
+    }
+    
+    /* Requirement 2: Summary Cards */
+    .summary-cards {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+    }
+    
+    .summary-cards .card {
+        padding: 12px 8px;
+        flex-direction: column;
+        text-align: center;
+        gap: 8px;
+    }
+    
+    .card-icon {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .card-icon svg {
+        width: 18px;
+        height: 18px;
+    }
+    
+    .summary-cards .card-info h3 {
+        font-size: 10px;
+    }
+    
+    .summary-cards .card-info .number {
+        font-size: 18px;
+    }
+    
+    /* Requirement 3: L1 Table Scroll */
+    .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .data-table {
+        min-width: 600px;
+    }
+    
+    /* Requirement 4: L2 Detail Analysis Buttons & Filters */
+    #l2-detail-section .section-header {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 16px;
+    }
+    
+    #l2-detail-section .section-header > div:first-child {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    #l2-detail-section .section-header > div:last-child {
+        display: flex;
+        flex-direction: column !important;
+        width: 100%;
+        gap: 8px !important;
+    }
+    
+    #l2-detail-section .section-header > div:last-child button {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .l2-filters {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 12px !important;
+    }
+    
+    .l2-filters > div {
+        width: 100%;
+    }
+    
+    .l2-filters select {
+        width: 100%;
+    }
+    
+    /* Requirement 5: Chart Canvas Container adjustment */
+    .glass > div[style*="height: 250px"] {
+        height: 300px !important;
     }
 }
