@@ -619,61 +619,86 @@ header {
         width: 100%;
     }
     
-    /* Requirement 5: Chart Canvas Container adjustment */
-    .glass > div[style*="height: 250px"] {
-        height: 300px !important;
-    }
-
-    /* 1. レーダーチャートを確実に完全縦並び（1カラム）へ強制変更 */
-    #l2-detail-section > div[style*="grid-template-columns"] {
+    /* 1. インラインの grid-template-columns: 1fr 1fr を強制解除して縦並び化 */
+    #l2-detail-section div[style*="grid-template-columns"] {
+        display: flex !important;
+        flex-direction: column !important;
         grid-template-columns: 1fr !important;
-        gap: 16px !important;
+        gap: 24px !important;
         width: 100% !important;
+        align-items: center !important; /* 縦並びのチャートを中央に揃える */
     }
 
-    /* グラフを包むコンテナの横幅をスマホ画面にジャストフィットさせる */
+    /* グラフを包むガラスモーフィズムカードをスマホ幅にジャストフィット */
     #l2-detail-section .glass {
         width: 100% !important;
         max-width: 100% !important;
         box-sizing: border-box !important;
+        padding: 16px 12px !important;
     }
 
-    /* 2. 定性コメント・テーブルの文字サイズ暴走を止め、画面内に収める */
-    .eval-result-card {
+    /* 原因・結果のサイズにバラつき・歪みを出さず、美しい「結果レイヤー」の正円サイズに強制統一する */
+    #l2-detail-section div[style*="height: 250px"],
+    #l2-detail-section div[style*="height:250px"] {
+        height: 250px !important;
+        width: 100% !important;
+        max-width: 340px !important; /* ←これが最重要：原因レイヤーの横伸びを阻止し結果レイヤーのサイズに固定 */
+        margin: 0 auto !important;
+    }
+
+    /* 2. 定性コメントエリアのコンテナ横幅をスマホ幅にバインド */
+    .eval-result-card,
+    #l2-comments-container .eval-result-card {
         width: 100% !important;
         max-width: 100% !important;
         padding: 12px !important;
         box-sizing: border-box !important;
+        margin-bottom: 16px !important;
     }
 
-    /* 先ほどのdisplay:blockを一括解除し、通常のテーブル配置のまま横幅だけを固定 */
+    /* 無理なdisplay:block化をやめ、通常の美しいテーブル配置のまま横幅を100%に強制固定 */
     .eval-result-card table {
         display: table !important;
         width: 100% !important;
-        table-layout: fixed !important; /* ←これが最重要：画面幅で強制固定 */
+        table-layout: fixed !important; /* スマホ画面の幅の中にテーブルを強制的に閉じ込める */
     }
 
-    .eval-result-card thead {
-        display: table-header-group !important; /* ヘッダーを復活 */
-    }
+    .eval-result-card thead { display: table-header-group !important; }
+    .eval-result-card tbody { display: table-row-group !important; }
+    .eval-result-card tr { display: table-row !important; }
 
-    .eval-result-card tr {
-        display: table-row !important;
-    }
-
-    /* 文字サイズを再デプロイ前の「綺麗で引き締まったサイズ」に強制固定 */
-    .eval-result-card td, 
-    .eval-result-card th {
+    /* JSがインラインでガチガチに仕込んでくる文字サイズ暴走とセル幅を力技でねじ伏せる */
+    .eval-result-card th,
+    .eval-result-card td {
         display: table-cell !important;
-        font-size: 12px !important; /* ←引き締まったサイズ */
-        word-break: break-all !important; /* 長い単語も確実に枠内で改行 */
-        white-space: normal !important;   /* テキストの自動折り返しを許可 */
+        font-size: 11px !important;         /* ←再デプロイ前の美しく引き締まった文字サイズに強制リセット */
+        font-weight: 500 !important;
         padding: 6px 4px !important;
+        vertical-align: top !important;
     }
 
-    /* 各列の幅をスマホの画面比率（%）にジャストフィットさせ、右へのはみ出しを全ブロック */
-    .eval-result-card th:nth-child(1), .eval-result-card td:nth-child(1) { width: 8% !important; }  /* # */
-    .eval-result-card th:nth-child(2), .eval-result-card td:nth-child(2) { width: 32% !important; } /* 指標名 */
-    .eval-result-card th:nth-child(3), .eval-result-card td:nth-child(3) { width: 12% !important; } /* 点数 */
-    .eval-result-card th:nth-child(4), .eval-result-card td:nth-child(4) { width: 48% !important; } /* 根拠・コメント */
+    /* スマホ画面用に各列の横幅パーセンテージを絶対固定し、右へのはみ出しを完全ブロック */
+    .eval-result-card th:nth-child(1), .eval-result-card td:nth-child(1) { width: 8% !important; }   /* #列 */
+    .eval-result-card th:nth-child(2), .eval-result-card td:nth-child(2) { width: 34% !important; }  /* 指標名列 */
+    .eval-result-card th:nth-child(3), .eval-result-card td:nth-child(3) { width: 14% !important; }  /* 点数バッジ列 */
+    .eval-result-card th:nth-child(4), .eval-result-card td:nth-child(4) { width: 44% !important; }  /* 根拠・コメント列 */
+
+    /* 長文の指標名が縦に細長く何重にも折り返されて崩れるのを防ぎ、1行でスマートに省略表示 */
+    .eval-result-card td:nth-child(2) {
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important; /* 末尾を「…」にする */
+    }
+
+    /* 4列目の根拠・コメントの長文は、スマホの幅に合わせて枠内で綺麗に自動改行させる */
+    .eval-result-card td:nth-child(4) {
+        word-break: break-all !important;
+        white-space: normal !important;
+    }
+    
+    /* 添付画像がある場合のスマホ幅への最適化 */
+    .eval-result-card img {
+        max-width: 100% !important;
+        height: auto !important;
+    }
 }
