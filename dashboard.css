@@ -623,4 +623,57 @@ header {
     .glass > div[style*="height: 250px"] {
         height: 300px !important;
     }
+
+    /* Requirement 6: L2 Grid Container to 1 Column */
+    #l2-detail-section > div[style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+        width: 100% !important;
+    }
+
+    /* Requirement 7: Qualitative Comments Table Optimization for Mobile */
+    .eval-result-card table {
+        width: 100% !important;
+        display: block !important;
+        table-layout: fixed !important;
+        overflow: hidden !important;
+    }
+    .eval-result-card thead {
+        display: none !important;
+    }
+    .eval-result-card tbody, .eval-result-card tr, .eval-result-card td {
+        display: block !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    .eval-result-card tr {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+        padding: 12px 0 !important;
+        margin-bottom: 8px !important;
+    }
+    .eval-result-card td {
+        padding: 4px 0 !important;
+        border: none !important;
+        text-align: left !important;
+        word-break: break-all !important;
+        overflow-wrap: break-word !important;
+        white-space: normal !important;
+    }
+    .eval-result-card td:nth-child(1) {
+        font-size: 12px !important;
+        color: #94a3b8 !important;
+        padding-bottom: 0 !important;
+    }
+    .eval-result-card td:nth-child(2) {
+        font-size: 15px !important;
+        font-weight: 600 !important;
+        padding-top: 2px !important;
+        padding-bottom: 6px !important;
+    }
+    .eval-result-card td:nth-child(3) {
+        padding-bottom: 8px !important;
+    }
+    .eval-result-card td:nth-child(4) {
+        line-height: 1.6 !important;
+        opacity: 0.9 !important;
+    }
 }
